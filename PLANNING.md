@@ -205,9 +205,9 @@ flowchart TD
 ```
 
 ### Phase 1: Environment & Raylib Window
-- [ ] Create `Makefile` with proper Raylib compiler and linker flags for Linux.
-- [ ] Implement clean `main.c` with 1280x720 window, 60 FPS target, and basic Raylib game loop.
-- [ ] Verify clean compilation without warnings (`-Wall -Wextra`).
+- [x] Create `Makefile` with proper Raylib compiler and linker flags for Linux.
+- [x] Implement clean `main.c` with 1280x720 window, 60 FPS target, and basic Raylib game loop.
+- [x] Verify clean compilation without warnings (`-Wall -Wextra`).
 
 ### Phase 2: Orb Buffer Engine (Q, W, E)
 - [ ] Define `OrbType` enum and `OrbBuffer` struct in `include/orb.h`.
