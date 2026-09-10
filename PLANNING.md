@@ -20,7 +20,7 @@ The project is developed in **C (C99)** using the **Raylib** library for graphic
 ### 2.2 Orb Buffer Mechanics
 - The player holds up to **3 active orbs** at any time.
 - The buffer operates as a **FIFO (First-In, First-Out) sliding window**:
-  - Initial state: Empty `[NONE, NONE, NONE]` (or default `[QUAS, QUAS, QUAS]`).
+  - Initial state: Empty `[NONE, NONE, NONE]`.
   - When a key is pressed (`Q`, `W`, or `E`), the oldest orb is discarded and the new orb is pushed to the back.
   - *Example*: `[Q, Q, Q]` + `W` $\rightarrow$ `[Q, Q, W]` + `E` $\rightarrow$ `[Q, W, E]`.
 
@@ -77,14 +77,7 @@ When **R (Invoke)** is pressed:
   - Miss penalty: wrong invoke resets streak and deducts a small time/score penalty.
 - Summary screen showing: Total Spells Invoked, Average Reaction Time (ms), Accuracy (%), and APM.
 
-### Mode 3: Combo Sequence Challenge
-- Train iconic Dota 2 Invoker combos in exact sequence:
-  - **Eul's / Sun Strike Combo**: `Tornado` $\rightarrow$ `Sun Strike` $\rightarrow$ `Chaos Meteor` $\rightarrow$ `Deafening Blast`.
-  - **Refresher Cataclysm Combo**: Double `Cataclysm/Sunstrike` $\rightarrow$ `Refresher` $\rightarrow$ `Meteor` $\rightarrow$ `Blast`.
-  - **Cold Snap + Forge Spirit**: Rapid armor reduction harass combo.
-- Enforces strict timing windows between invokes and casts.
-
-### Mode 4: Quiz / Recipe Memorization
+### Mode 3: Quiz / Recipe Memorization
 - Displays a spell name/icon and asks for the 3 orbs without time pressure.
 - Great for beginners to build initial neural pathways before attempting speed modes.
 
@@ -175,7 +168,7 @@ typedef enum {
     STATE_MENU,
     STATE_PRACTICE,
     STATE_TIME_ATTACK,
-    STATE_COMBO_CHALLENGE,
+    STATE_QUIZ,
     STATE_GAME_OVER
 } GameState;
 
@@ -208,8 +201,7 @@ flowchart TD
     M3 --> M4["Phase 4: HUD & UI Drawing"]
     M4 --> M5["Phase 5: Audio & Sound Effects"]
     M5 --> M6["Phase 6: Speed Trainer Mode"]
-    M6 --> M7["Phase 7: Sequence Combo Mode"]
-    M7 --> M8["Phase 8: High Scores & Polish"]
+    M6 --> M7["Phase 7: High Scores & Polish"]
 ```
 
 ### Phase 1: Environment & Raylib Window
@@ -257,12 +249,7 @@ flowchart TD
   - Average reaction time in milliseconds
   - Accuracy percentage
 
-### Phase 7: Sequence Combo Mode (Advanced)
-- [ ] Define combo recipes (list of spells in exact execution order).
-- [ ] Build step-by-step progress tracker for combos.
-- [ ] Add timing tolerance (must cast within $X$ ms of previous spell).
-
-### Phase 8: Data Persistence & Final Polish
+### Phase 7: Data Persistence & Final Polish
 - [ ] Save best scores and personal records to a local file (`scores.dat`).
 - [ ] Add simple particle system for orb trails and invoke burst.
 - [ ] Screen shake effect on invoking powerful spells (Sun Strike, Chaos Meteor).

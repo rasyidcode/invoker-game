@@ -1,0 +1,46 @@
+# Compiled Object Files & Libraries
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.dll
+
+# Build & Output Directories
+bin/
+build/
+out/
+dist/
+**/bin/
+**/build/
+**/out/
+
+## Executables
+invoker_game
+
+# Common compiler output formats
+*.out
+*.exe
+*.app
+
+# Runtime & Save Data
+*.dat
+*.log
+
+# Editor & IDE Files
+*.vscode/
+*.idea/
+*.swp
+*.swo
+*~
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Ignore playground binaries
+playground/*
+!playground/*.c
+!playground/Makefile
+!playground/*.md
+
