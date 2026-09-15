@@ -210,10 +210,10 @@ flowchart TD
 - [x] Verify clean compilation without warnings (`-Wall -Wextra`).
 
 ### Phase 2: Orb Buffer Engine (Q, W, E)
-- [ ] Define `OrbType` enum and `OrbBuffer` struct in `include/orb.h`.
-- [ ] Implement push function that maintains exactly the last 3 pressed orbs (FIFO).
-- [ ] Bind keyboard input `KEY_Q`, `KEY_W`, `KEY_E`.
-- [ ] Draw colored circles or placeholder shapes at the bottom-center of the screen representing active orbs.
+- [x] Define `OrbType` enum and `OrbBuffer` struct in `include/orb.h`.
+- [x] Implement push function that maintains exactly the last 3 pressed orbs (FIFO).
+- [x] Bind keyboard input `KEY_Q`, `KEY_W`, `KEY_E`.
+- [x] Draw colored circles or placeholder shapes at the bottom-center of the screen representing active orbs.
 
 ### Phase 3: The Invoke Engine (R)
 - [ ] Create spell registry with all 10 spells and their required $(Q, W, E)$ counts.
