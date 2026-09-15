@@ -18,13 +18,13 @@ typedef struct {
 } OrbBuffer;
 
 // Initialize the buffer to empty (all ORB_NONE)
-void OrbBufferInit(OrbBuffer *buffer);
+void InitOrbBuffer(OrbBuffer *buffer);
 
 // Push a new orb into the buffer using FIFO sliding window
-void OrbBufferPush(OrbBuffer *buffer, OrbType orb);
+void PushOrbBuffer(OrbBuffer *buffer, OrbType orb);
 
 // Helper functions for UI/rendering
-Color OrbGetColor(OrbType orb);
-const char *OrbGetName(OrbType orb);
+Color GetOrbColor(OrbType orb);
+const char *GetOrbName(OrbType orb);
 
 #endif
