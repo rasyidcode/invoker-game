@@ -28,7 +28,8 @@ invoker_game
 *.log
 
 # Editor & IDE Files
-*.vscode/
+.vscode/*
+!.vscode/*.example
 *.idea/
 *.swp
 *.swo
