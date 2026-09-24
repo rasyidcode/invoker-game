@@ -59,3 +59,27 @@ SpellId ResolveSpell(const OrbBuffer *buffer) {
 
     return SPELL_NONE;
 }
+
+bool InvokeSpell(SpellSlots *slots, const OrbBuffer *buffer) {
+    if (!slots || !buffer) return false;
+
+    SpellId spell = ResolveSpell(buffer);
+    if (spell == SPELL_NONE) {
+        return false;
+    }
+
+    if (slots->slot1 == spell) {
+        return false;
+    }
+
+    if (slots->slot2 == spell) {
+        SpellId temp = slots->slot1;
+        slots->slot1 = slots->slot2;
+        slots->slot2 = temp;
+        return true;
+    }
+
+    slots->slot2 = slots->slot1;
+    slots->slot1 = spell;
+    return true;
+}

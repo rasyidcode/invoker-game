@@ -14,7 +14,24 @@
 
 // Helper to draw an invoked spell slot box
 static void DrawSpellSlot(int posX, int posY, int width, int height,
-                          const char *hotkey, SpellId spellId) {}
+                          const char *hotkey, SpellId spellId) {
+    const SpellInfo *info = GetSpellInfo(spellId);
+
+    // Slot background & border
+    Color slotBg = info ? (Color){25, 28, 36, 255} : (Color){20, 22, 28, 255};
+    Color borderCol = info ? info->color : (Color){50, 55, 65, 255};
+
+    DrawRectangle(posX, posY, width, height, slotBg);
+    DrawRectangleLines(posX, posY, width, height, borderCol);
+
+    // Hotkey badge (top-right or bottom-right)
+    DrawText(hotkey, posX + width - 16, posY + 6, 16, GOLD);
+
+    // Spell Name
+    if (info) {
+        // Simple indicator bar with spell's element color
+    }
+}
 
 int main(void) {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_HIGHDPI);

@@ -81,6 +81,16 @@ When **R (Invoke)** is pressed:
 - Displays a spell name/icon and asks for the 3 orbs without time pressure.
 - Great for beginners to build initial neural pathways before attempting speed modes.
 
+### Mode 4: Arcane Surge / Momentum Mode (Overload Gauge)
+- **Premise**: A high-intensity pressure challenge where the player races against constant gauge decay to reach full capacity.
+- **The Surge Bar Mechanics**:
+  - The bar starts empty (`0.0f / 10.0f`).
+  - **Goal**: Reach maximum capacity (`10.0f / 10.0f`) to achieve **Surge Overload** (Victory).
+  - **Continuous Decay**: The bar constantly drains over time (e.g., `-0.4f` points per second). Hesitation causes the bar to drop back toward empty.
+  - **Filling the Bar**: Every successfully invoked spell injects `+1.0f` volume into the bar.
+  - **Anti-Spam / Spell Cycling**: To prevent trivial spamming of a single spell (e.g., repeating `E E E R`), consecutive identical invocations give zero or halved charge. The player must actively cycle spells to maintain momentum.
+  - **Difficulty Scaling / Endless Tiers**: Upon filling the bar to 10, the player can advance to higher tiers (Tier 2, Tier 3...) with progressively faster decay rates, testing the upper limits of APM and muscle memory.
+
 ---
 
 ## 4. Software Architecture & Design
@@ -168,6 +178,7 @@ typedef enum {
     STATE_MENU,
     STATE_PRACTICE,
     STATE_TIME_ATTACK,
+    STATE_SURGE,
     STATE_QUIZ,
     STATE_GAME_OVER
 } GameState;
@@ -187,73 +198,48 @@ typedef struct {
     int total_attempted;
     int total_correct;
     float total_reaction_time;
+
+    // Arcane Surge Mode metrics
+    float surge_meter;        // Current bar volume (0.0f to surge_max)
+    float surge_max;          // Target volume (e.g. 10.0f)
+    float surge_decay_rate;   // Bar drain per second (e.g. 0.4f)
+    SpellId surge_last_spell; // Prevents spamming identical spell
+    int surge_tier;           // Current difficulty stage
+    float surge_time_elapsed; // Time taken to achieve max bar
 } GameContext;
 ```
+
+#### On-Screen Action Log / Event Feed (`include/ui.h`)
+```c
+#define MAX_LOG_ENTRIES 6
+#define LOG_ENTRY_MAX_LEN 64
+#define LOG_ENTRY_DEFAULT_LIFETIME 3.0f // seconds visible
+
+typedef struct {
+    char text[LOG_ENTRY_MAX_LEN];
+    Color color;
+    float lifetime;     // Time remaining in seconds
+    float max_lifetime; // Initial duration (for calculating alpha fade)
+} ActionLogEntry;
+
+typedef struct {
+    ActionLogEntry entries[MAX_LOG_ENTRIES];
+    int count;
+} ActionLog;
+```
+- **Behavior**:
+  - Acts as a fixed-capacity feed (FIFO shift or circular buffer) requiring **zero dynamic allocations** per frame.
+  - When a new event occurs (e.g., orb press or spell invocation), older entries slide up, and the newest entry appears at the bottom.
+  - Each entry maintains a countdown timer (`lifetime`). As `lifetime` approaches zero, the text smoothly fades out via `ColorAlpha(entry.color, entry.lifetime / entry.max_lifetime)`.
+  - Expired entries (`lifetime <= 0`) are removed or ignored during rendering.
 
 ---
 
 ## 5. Development Roadmap & Milestones
 
-```mermaid
-flowchart TD
-    M1["Phase 1: Raylib Setup & Window"] --> M2["Phase 2: Orb Buffer (Q,W,E)"]
-    M2 --> M3["Phase 3: Invoke Engine (R)"]
-    M3 --> M4["Phase 4: HUD & UI Drawing"]
-    M4 --> M5["Phase 5: Audio & Sound Effects"]
-    M5 --> M6["Phase 6: Speed Trainer Mode"]
-    M6 --> M7["Phase 7: High Scores & Polish"]
-```
+The actionable development phases, phase diagram, and active progress checklists are maintained in a dedicated tracking document:
 
-### Phase 1: Environment & Raylib Window
-- [x] Create `Makefile` with proper Raylib compiler and linker flags for Linux.
-- [x] Implement clean `main.c` with 1280x720 window, 60 FPS target, and basic Raylib game loop.
-- [x] Verify clean compilation without warnings (`-Wall -Wextra`).
-
-### Phase 2: Orb Buffer Engine (Q, W, E)
-- [x] Define `OrbType` enum and `OrbBuffer` struct in `include/orb.h`.
-- [x] Implement push function that maintains exactly the last 3 pressed orbs (FIFO).
-- [x] Bind keyboard input `KEY_Q`, `KEY_W`, `KEY_E`.
-- [x] Draw colored circles or placeholder shapes at the bottom-center of the screen representing active orbs.
-
-### Phase 3: The Invoke Engine (R)
-- [ ] Create spell registry with all 10 spells and their required $(Q, W, E)$ counts.
-- [ ] Implement lookup function: `SpellId ResolveSpell(const OrbBuffer *buffer)`.
-- [ ] Implement slot shift logic for Slot 1 and Slot 2 upon pressing `KEY_R`.
-- [ ] Print invoked spell names on screen to confirm combination matching works 100% accurately.
-
-### Phase 4: UI & HUD Aesthetics
-- [ ] Design Dota 2 inspired bottom HUD bar:
-  - 3 Orb indicator circles (Cyan, Violet, Orange).
-  - Orb key label badges (`Q`, `W`, `E`).
-  - Invoke button (`R`) with cooldown/ready state indicator.
-  - Two active spell slot boxes (`D`, `F`) displaying spell names and colors.
-- [ ] Add texture loading support (`assets/icons/`) with fallback procedural drawing when assets are absent.
-- [ ] Add smooth key-press visual feedback (scaling/pulsing orbs on press).
-
-### Phase 5: Audio & Sound Effects
-- [ ] Initialize Raylib audio system (`InitAudioDevice` / `CloseAudioDevice`).
-- [ ] Implement click/elemental audio for Quas, Wex, Exort.
-- [ ] Add Invoke activation sound.
-- [ ] Add casting audio for `D` and `F` triggers.
-
-### Phase 6: Game Mode - Time Attack / Speed Trainer
-- [ ] Implement random target spell selection.
-- [ ] Display target spell banner with icon and name prominently.
-- [ ] Implement round timer (e.g., 30 seconds countdown).
-- [ ] Evaluate invoke accuracy:
-  - Correct spell $\rightarrow$ play success sound, add score, increase combo streak, pick next target.
-  - Incorrect spell $\rightarrow$ play error sound, reset streak, small score/time penalty.
-- [ ] Create Game Over summary screen showing:
-  - Final Score
-  - Spells per minute (APM)
-  - Average reaction time in milliseconds
-  - Accuracy percentage
-
-### Phase 7: Data Persistence & Final Polish
-- [ ] Save best scores and personal records to a local file (`scores.dat`).
-- [ ] Add simple particle system for orb trails and invoke burst.
-- [ ] Screen shake effect on invoking powerful spells (Sun Strike, Chaos Meteor).
-- [ ] Settings menu for key rebinding or audio volume sliders.
+👉 **See [ROADMAP.md](./ROADMAP.md) for the complete roadmap, phase breakdown, and milestone checklists.**
 
 ---
 

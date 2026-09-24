@@ -17,6 +17,7 @@ dist/
 
 ## Executables
 invoker_game
+invoker_game_debug
 
 # Common compiler output formats
 *.out
