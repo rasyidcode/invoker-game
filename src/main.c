@@ -1,23 +1,31 @@
-#include <raylib.h>
+#include <math.h>
 #include <orb.h>
+#include <raylib.h>
 #include <spell.h>
 
 // Screen configuration
-#define SCREEN_WIDTH 1920
-#define SCREEN_HEIGHT 1080
+#define VIRTUAL_WIDTH 720
+#define VIRTUAL_HEIGHT 1280
+#define SCREEN_WIDTH 792
+#define SCREEN_HEIGHT 1408
 #define TARGET_FPS 60
 
 // Helper to draw an invoked spell slot box
-static void DrawSpellSlot(int posX, int posY, int width, int height, const char *hotkey, SpellId spellId) {
-
-}
+static void DrawSpellSlot(int posX, int posY, int width, int height,
+                          const char *hotkey, SpellId spellId) {}
 
 int main(void) {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Dota 2 - Invoker Game");
+
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    SetWindowMinSize(360, 640);
     SetTargetFPS(TARGET_FPS);
 
     // Dota 2 inspired dark background color: #121418
     Color bgColor = (Color){18, 20, 24, 255};
+
+    // Virtual render texture
+    RenderTexture2D target = LoadRenderTexture(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
 
     OrbBuffer orbBuffer;
     InitOrbBuffer(&orbBuffer);
@@ -35,19 +43,23 @@ int main(void) {
             PushOrbBuffer(&orbBuffer, ORB_EXORT);
         }
 
-        // Draw
-        BeginDrawing();
+        // Virtual Draw
+        BeginTextureMode(target);
             ClearBackground(bgColor);
 
-            int centerX = SCREEN_WIDTH / 2;
+            int centerX = VIRTUAL_WIDTH / 2;
 
             const int gameTitleFs = 48;
             const char *gameTitle = "DOTA 2 - INVOKER GAME";
             const int gameTitleW = MeasureText(gameTitle, gameTitleFs);
-            DrawText(gameTitle, SCREEN_WIDTH / 2 - gameTitleW / 2, 100, gameTitleFs, RAYWHITE);
-            DrawText("Press Q (Quas), W (Wex), E (Exort) to fill orb slots", 400, 160, 18, GRAY);
+            DrawText(gameTitle, VIRTUAL_WIDTH / 2 - gameTitleW / 2, 100, gameTitleFs, RAYWHITE);
 
-            int startY = 460;
+            const int instructionTextFs = 18;
+            const char *instructionText = "Press Q (Quas), W (Wex), E (Exort) to fill orb slots";
+            const int instructionTextW = MeasureText(instructionText, instructionTextFs);
+            DrawText(instructionText, (VIRTUAL_WIDTH / 2 - instructionTextW / 2), 160, 18, LIGHTGRAY);
+
+            int startY = VIRTUAL_WIDTH / 2;
             int orbRadius = 34;
             int orbSpacing = 90;
 
@@ -75,12 +87,32 @@ int main(void) {
             DrawRectangleLines(invokeX, invokeY, invokeW, invokeH, PURPLE);
             DrawText("R", invokeX + invokeW - 18, invokeY + 12, 18, GOLD);
             DrawText("INVOKE", invokeX + 13, invokeY + 36, 12, RAYWHITE);
+        EndTextureMode();
+
+        // Draw
+        BeginDrawing();
+            ClearBackground(BLACK);
+
+            // calculate scale to maintain 9:16 aspect ratio
+            float scale = fminf((float)GetScreenWidth() / VIRTUAL_WIDTH, (float)GetScreenHeight() / VIRTUAL_HEIGHT);
+
+            // in raylib, render textures have inverted Y coordinates, so height is negative
+            Rectangle sourceRec = { 0.0f, 0.0f, (float)target.texture.width, -(float)target.texture.height };
+            Rectangle destRec = {
+                (GetScreenWidth() - (VIRTUAL_WIDTH * scale)) * 0.5f,
+                (GetScreenHeight() - (VIRTUAL_HEIGHT * scale)) * 0.5f,
+                VIRTUAL_WIDTH * scale,
+                VIRTUAL_HEIGHT * scale
+            };
+
+            DrawTexturePro(target.texture, sourceRec, destRec, (Vector2){ 0, 0 }, 0.0f, WHITE);
 
             DrawFPS(20, 20);
         EndDrawing();
     }
     // clang-format on
 
+    UnloadRenderTexture(target);
     CloseWindow();
 
     return 0;

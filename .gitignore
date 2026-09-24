@@ -38,10 +38,3 @@ invoker_game
 # OS Files
 .DS_Store
 Thumbs.db
-
-# Ignore playground binaries
-playground/*
-!playground/*.c
-!playground/Makefile
-!playground/*.md
-
