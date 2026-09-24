@@ -6,8 +6,10 @@
 // Screen configuration
 #define VIRTUAL_WIDTH 720
 #define VIRTUAL_HEIGHT 1280
-#define SCREEN_WIDTH 792
-#define SCREEN_HEIGHT 1408
+
+#define SCREEN_WIDTH 450
+#define SCREEN_HEIGHT 800
+
 #define TARGET_FPS 60
 
 // Helper to draw an invoked spell slot box
@@ -15,9 +17,9 @@ static void DrawSpellSlot(int posX, int posY, int width, int height,
                           const char *hotkey, SpellId spellId) {}
 
 int main(void) {
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_HIGHDPI);
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Dota 2 - Invoker Game");
 
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     SetWindowMinSize(360, 640);
     SetTargetFPS(TARGET_FPS);
 
@@ -26,6 +28,7 @@ int main(void) {
 
     // Virtual render texture
     RenderTexture2D target = LoadRenderTexture(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
 
     OrbBuffer orbBuffer;
     InitOrbBuffer(&orbBuffer);
@@ -60,8 +63,8 @@ int main(void) {
             DrawText(instructionText, (VIRTUAL_WIDTH / 2 - instructionTextW / 2), 160, 18, LIGHTGRAY);
 
             int startY = VIRTUAL_WIDTH / 2;
-            int orbRadius = 34;
-            int orbSpacing = 90;
+            int orbRadius = 64;
+            int orbSpacing = orbRadius * 2 + 25;
 
             for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
                 int posX = centerX + (i - 1) * orbSpacing;
@@ -74,8 +77,8 @@ int main(void) {
 
                 // Orb element label
                 const char *label = GetOrbName(orbBuffer.orbs[i]);
-                int textWidth = MeasureText(label, 14);
-                DrawText(label, posX - (textWidth / 2), startY + orbRadius + 12, 14, RAYWHITE);
+                int textWidth = MeasureText(label, 18);
+                DrawText(label, posX - (textWidth / 2), startY + orbRadius + 12, 18, RAYWHITE);
             }
 
             // Draw Invoke Button (R)
@@ -85,8 +88,8 @@ int main(void) {
             int invokeY = 560;
             DrawRectangle(invokeX, invokeY, invokeW, invokeH, (Color){35, 30, 50, 255});
             DrawRectangleLines(invokeX, invokeY, invokeW, invokeH, PURPLE);
-            DrawText("R", invokeX + invokeW - 18, invokeY + 12, 18, GOLD);
-            DrawText("INVOKE", invokeX + 13, invokeY + 36, 12, RAYWHITE);
+            DrawText("R", (VIRTUAL_WIDTH / 2) + (invokeW / 2) - 18, (VIRTUAL_HEIGHT / 2) - invokeH, 18, GOLD);
+            DrawText("INVOKE", invokeX + 13, invokeY + 36, 14, RAYWHITE);
         EndTextureMode();
 
         // Draw

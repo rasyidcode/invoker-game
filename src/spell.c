@@ -1,3 +1,4 @@
+#include "orb.h"
 #include <spell.h>
 
 // Static registry containing all 10 spells
@@ -16,7 +17,7 @@ static const SpellInfo SPELL_DATABASE[SPELL_COUNT] = {
                         (Color){218, 112, 214, 255}},
     [SPELL_SUN_STRIKE] = {SPELL_SUN_STRIKE, "Sun Strike", 0, 0, 3,
                           (Color){255, 87, 34, 255}},
-    [SPELL_FORGE_SPIRIT] = {SPELL_FORGE_SPIRIT, "Forge Sprit", 1, 0, 2,
+    [SPELL_FORGE_SPIRIT] = {SPELL_FORGE_SPIRIT, "Forge Spirit", 1, 0, 2,
                             (Color){255, 140, 0, 255}},
     [SPELL_CHAOS_METEOR] = {SPELL_CHAOS_METEOR, "Chaos Meteor", 0, 1, 2,
                             (Color){255, 69, 0, 255}},
@@ -33,4 +34,28 @@ void InitSpellSlots(SpellSlots *slots) {
 const SpellInfo *GetSpellInfo(SpellId id) {
     if (id < 0 || id >= SPELL_COUNT) return NULL;
     return &SPELL_DATABASE[id];
+}
+
+SpellId ResolveSpell(const OrbBuffer *buffer) {
+    if (!buffer || buffer->count < MAX_ACTIVE_ORBS) {
+        return SPELL_NONE;
+    }
+
+    int quas = 0, wex = 0, exort = 0;
+    for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
+        switch (buffer->orbs[i]) {
+            case ORB_QUAS:  quas++;     break; 
+            case ORB_WEX:   wex++;      break;
+            case ORB_EXORT: exort++;    break;
+            default: break;
+        }
+    }
+
+    for (int i = 0; i < SPELL_COUNT; i++) {
+        if (SPELL_DATABASE[i].req_quas == quas && SPELL_DATABASE[i].req_wex == wex && SPELL_DATABASE[i].req_exort == exort) {
+            return SPELL_DATABASE[i].id;
+        }
+    }
+
+    return SPELL_NONE;
 }

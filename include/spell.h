@@ -36,7 +36,7 @@ typedef struct {
 } SpellSlots;
 
 // Initialize spell slots to SPELL_NONE
-void InitSpellSlot(SpellSlots *slots);
+void InitSpellSlots(SpellSlots *slots);
 
 // Get the static information and metadata of a spell
 const SpellInfo *GetSpellInfo(SpellId id);
