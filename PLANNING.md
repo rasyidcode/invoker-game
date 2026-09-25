@@ -32,18 +32,18 @@ The project is developed in **C (C99)** using the **Raylib** library for graphic
 
 ### 2.4 The 10 Spells Reference Table
 
-| Spell Name | Recipe | Quas | Wex | Exort | Default Key | Description |
-| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Cold Snap** | Q Q Q | 3 | 0 | 0 | `Y` / `D` | Freezes target repeatedly when taking damage. |
-| **Ghost Walk** | Q Q W | 2 | 1 | 0 | `V` / `D` | Enters stealth, slowing nearby enemies. |
-| **Ice Wall** | Q Q E | 2 | 0 | 1 | `G` / `D` | Generates a wall of ice that heavily slows enemies. |
-| **EMP** | W W W | 0 | 3 | 0 | `C` / `D` | Charges an electromagnetic pulse burning mana. |
-| **Tornado** | W W Q | 1 | 2 | 0 | `X` / `D` | Launches a vortex lifting enemies into the air. |
-| **Alacrity** | W W E | 0 | 2 | 1 | `Z` / `D` | Grants massive attack speed and bonus damage. |
-| **Sun Strike** | E E E | 0 | 0 | 3 | `T` / `D` | Global delayed beam of devastating pure fire. |
-| **Forge Spirit** | E E Q | 1 | 0 | 2 | `F` / `D` | Summons an elemental spirit to fight alongside. |
-| **Chaos Meteor** | E E W | 0 | 1 | 2 | `D` / `D` | Calls down a flaming meteor rolling forward. |
-| **Deafening Blast**| Q W E | 1 | 1 | 1 | `B` / `D` | Sonic wave knocking back, damaging, and disarming. |
+| Spell Name | Recipe | Quas | Wex | Exort | Default Key | Mana Cost | Cooldown | Description |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **Cold Snap** | Q Q Q | 3 | 0 | 0 | `Y` / `D` | 100 | 20.0s | Freezes target repeatedly when taking damage. |
+| **Ghost Walk** | Q Q W | 2 | 1 | 0 | `V` / `D` | 200 | 35.0s | Enters stealth, slowing nearby enemies. |
+| **Ice Wall** | Q Q E | 2 | 0 | 1 | `G` / `D` | 175 | 25.0s | Generates a wall of ice that heavily slows enemies. |
+| **EMP** | W W W | 0 | 3 | 0 | `C` / `D` | 125 | 30.0s | Charges an electromagnetic pulse burning mana. |
+| **Tornado** | W W Q | 1 | 2 | 0 | `X` / `D` | 150 | 30.0s | Launches a vortex lifting enemies into the air. |
+| **Alacrity** | W W E | 0 | 2 | 1 | `Z` / `D` | 60 | 17.0s | Grants massive attack speed and bonus damage. |
+| **Sun Strike** | E E E | 0 | 0 | 3 | `T` / `D` | 175 | 25.0s | Global delayed beam of devastating pure fire. |
+| **Forge Spirit** | E E Q | 1 | 0 | 2 | `F` / `D` | 75 | 30.0s | Summons an elemental spirit to fight alongside. |
+| **Chaos Meteor** | E E W | 0 | 1 | 2 | `D` / `D` | 200 | 40.0s | Calls down a flaming meteor rolling forward. |
+| **Deafening Blast**| Q W E | 1 | 1 | 1 | `B` / `D` | 200 | 40.0s | Sonic wave knocking back, damaging, and disarming. |
 
 ### 2.5 Invoked Spell Slot Logic (D & F)
 Invoker has two active spell slots: **Slot 1 (Primary, key `D`)** and **Slot 2 (Secondary, key `F`)**.
@@ -57,6 +57,26 @@ When **R (Invoke)** is pressed:
    - Slot 2 is overwritten by the contents of Slot 1.
    - Slot 1 receives $S_{new}$.
 
+### 2.6 Cooldown & Mana Pool Mechanics
+
+> [!NOTE]
+> **Mode Separation / Free-Cast vs. Realism Rules**:
+> - **Free-Cast Rules (Default)**: Speed Trainer (`STATE_TIME_ATTACK`), Arcane Surge (`STATE_SURGE`), and Quiz modes run with **unlimited mana and 0s cooldowns** so players can drill muscle memory at maximum APM without artificial locks.
+> - **Realism Rules**: The Cooldown and Mana Pool mechanics detailed below are strictly enforced in **Mode 5: Match Simulation / Combo Trial** (`STATE_SIMULATION`) and can be toggled on/off in Sandbox Practice mode.
+
+- **Per-Spell Cooldown Tracking**:
+  - Cooldowns belong to individual spells (`spell_cooldowns[SPELL_COUNT]`), faithfully replicating Dota 2 mechanics.
+  - If a spell is cast and goes on cooldown, swapping it out of a slot and re-invoking it later retains its remaining cooldown timer.
+  - Active slots display a translucent darkened overlay and countdown timer in seconds (e.g. `14.5s`) when on cooldown.
+- **Mana Pool System**:
+  - Players possess a mana pool (e.g. `1000.0f` max mana) with continuous regeneration (`+15.0f` mana/sec).
+  - Current mana is displayed via a vibrant blue HUD mana bar beneath the active spell slots.
+- **Casting Verification (`KEY_D` / `KEY_F`)**:
+  - 1. **Validity**: Checks that an active spell is equipped (`id != SPELL_NONE`).
+  - 2. **Cooldown Check**: When Realism rules are active, checks that `spell_cooldowns[id] <= 0.0f`. If on cooldown, plays a fizzle sound and logs `"Spell on cooldown"`.
+  - 3. **Mana Check**: When Realism rules are active, checks that `current_mana >= spell.mana_cost`. If insufficient, plays a "No mana" audio cue and logs `"Not enough mana (Need X)"`.
+  - 4. **Execution**: Deducts `spell.mana_cost`, sets `spell_cooldowns[id] = spell.base_cooldown`, plays casting sound, and logs `"Cast <Spell Name> [Key]"`. Under Free-Cast rules, casting costs 0 mana and has 0 cooldown.
+
 ---
 
 ## 3. Game Modes
@@ -64,11 +84,13 @@ When **R (Invoke)** is pressed:
 ### Mode 1: Free Practice / Sandbox
 - No timer, no fail condition.
 - Real-time display of current orbs and spell slots.
-- Cast testing: pressing `D` or `F` plays the spell sound effect and triggers a simulated cooldown.
+- Cast testing: pressing `D` or `F` plays the spell sound effect.
+- Includes a HUD toggle (`[TAB]` or button) to switch between **Free-Cast (0s CD, infinite mana)** and **Dota Realism (Mana & Cooldowns ON)**.
 - Visual spell-book helper showing all 10 recipes for quick reference.
 
-### Mode 2: Speed Trainer / Time Attack
+### Mode 2: Speed Trainer / Time Attack (Free-Cast Rules)
 - The game displays a target spell icon and name (e.g., *"Invoke: Sun Strike!"*).
+- Operates under **Free-Cast rules** (0 cooldowns, infinite mana) to maximize reaction speed.
 - The player must input the correct orbs and press `R` (optionally cast with `D`).
 - **Timed Run**: 30 or 60 seconds.
 - **Score System**:
@@ -83,6 +105,7 @@ When **R (Invoke)** is pressed:
 
 ### Mode 4: Arcane Surge / Momentum Mode (Overload Gauge)
 - **Premise**: A high-intensity pressure challenge where the player races against constant gauge decay to reach full capacity.
+- Operates under **Free-Cast rules** to allow rapid spell cycling.
 - **The Surge Bar Mechanics**:
   - The bar starts empty (`0.0f / 10.0f`).
   - **Goal**: Reach maximum capacity (`10.0f / 10.0f`) to achieve **Surge Overload** (Victory).
@@ -90,6 +113,13 @@ When **R (Invoke)** is pressed:
   - **Filling the Bar**: Every successfully invoked spell injects `+1.0f` volume into the bar.
   - **Anti-Spam / Spell Cycling**: To prevent trivial spamming of a single spell (e.g., repeating `E E E R`), consecutive identical invocations give zero or halved charge. The player must actively cycle spells to maintain momentum.
   - **Difficulty Scaling / Endless Tiers**: Upon filling the bar to 10, the player can advance to higher tiers (Tier 2, Tier 3...) with progressively faster decay rates, testing the upper limits of APM and muscle memory.
+
+### Mode 5: Match Simulation / Combo Trial (Realism Rules)
+- **Premise**: Authentic Dota 2 tactical environment enforcing strict **Mana Pool** management and authentic **Spell Cooldowns** (17.0s - 40.0s).
+- **Objectives & Combo Challenges**:
+  - Prompts classic multi-spell combo sequences to execute in rapid succession (e.g. *Eul's Combo: Tornado $\rightarrow$ Sun Strike $\rightarrow$ Chaos Meteor $\rightarrow$ Deafening Blast*, or *Pick-off: Cold Snap $\rightarrow$ Forge Spirit $\rightarrow$ Alacrity*).
+  - Forces the player to budget mana, monitor cooldown rotations, and adapt when core spells are unavailable.
+  - Tracks combo accuracy, total execution time, and mana efficiency.
 
 ---
 
@@ -153,10 +183,11 @@ typedef struct {
     int req_quas;
     int req_wex;
     int req_exort;
+    int mana_cost;       // Mana required to cast
+    float base_cooldown; // Cooldown duration in seconds
     Color theme_color;
-    float cooldown;
-    // Texture2D icon; (loaded at runtime)
-    // Sound sound;     (loaded at runtime)
+    // Texture2D icon;   // (loaded at runtime)
+    // Sound sound;      // (loaded at runtime)
 } SpellInfo;
 
 typedef struct {
@@ -167,8 +198,6 @@ typedef struct {
 typedef struct {
     SpellId slot1; // Primary (D)
     SpellId slot2; // Secondary (F)
-    float cooldown_slot1;
-    float cooldown_slot2;
 } SpellSlots;
 ```
 
@@ -179,6 +208,7 @@ typedef enum {
     STATE_PRACTICE,
     STATE_TIME_ATTACK,
     STATE_SURGE,
+    STATE_SIMULATION,
     STATE_QUIZ,
     STATE_GAME_OVER
 } GameState;
@@ -188,6 +218,17 @@ typedef struct {
     OrbBuffer orb_buffer;
     SpellSlots spell_slots;
     
+    // Mode rules modifier
+    bool enable_mana_and_cooldowns; // Active in STATE_SIMULATION or via practice toggle
+
+    // Mana Pool System
+    float current_mana;
+    float max_mana;
+    float mana_regen; // Mana points regenerated per second
+
+    // Global per-spell cooldown tracker (indexed by SpellId)
+    float spell_cooldowns[SPELL_COUNT];
+
     // Time Attack metrics
     SpellId target_spell;
     float timer_remaining;

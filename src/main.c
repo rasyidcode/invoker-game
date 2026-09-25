@@ -13,23 +13,73 @@
 #define TARGET_FPS 60
 
 // Helper to draw an invoked spell slot box
-static void DrawSpellSlot(int posX, int posY, int width, int height,
-                          const char *hotkey, SpellId spellId) {
-    const SpellInfo *info = GetSpellInfo(spellId);
+static void DrawAbilitySlots(int centerX, SpellSlots *spellSlots) {
+    int slotCount = 6;
+    int slotSize = 100;
+    int slotGap = 10;
+    int posY = 640;
 
-    // Slot background & border
-    Color slotBg = info ? (Color){25, 28, 36, 255} : (Color){20, 22, 28, 255};
-    Color borderCol = info ? info->color : (Color){50, 55, 65, 255};
+    // Fetch info for active invoked spells
+    const SpellInfo *info1 = GetSpellInfo(spellSlots->slot1);
+    const SpellInfo *info2 = GetSpellInfo(spellSlots->slot2);
 
-    DrawRectangle(posX, posY, width, height, slotBg);
-    DrawRectangleLines(posX, posY, width, height, borderCol);
+    // Prepare data for all 6 slots
+    typedef struct {
+        const char *hotkey;
+        const char *name;
+        Color color;
+        bool isActive;
+    } AbilitySlotUI;
 
-    // Hotkey badge (top-right or bottom-right)
-    DrawText(hotkey, posX + width - 16, posY + 6, 16, GOLD);
+    AbilitySlotUI slots[6] = {
+        (AbilitySlotUI){"Q", "Quas", (Color){0, 210, 255, 255}, true},
+        (AbilitySlotUI){"W", "Wex", (Color){224, 64, 251, 255}, true},
+        (AbilitySlotUI){"E", "Exort", (Color){255, 87, 34, 255}, true},
+        (AbilitySlotUI){"D", info1 ? info1->name : "Empty",
+                        info1 ? info1->color : (Color){45, 50, 60, 255},
+                        info1 != NULL},
+        (AbilitySlotUI){"F", info2 ? info2->name : "Empty",
+                        info2 ? info2->color : (Color){45, 50, 60, 255},
+                        info2 != NULL},
+        (AbilitySlotUI){"R", "Invoke", (Color){186, 85, 211, 255}, true},
+    };
 
-    // Spell Name
-    if (info) {
-        // Simple indicator bar with spell's element color
+    // Calculate total row width (all boxes + interior gaps only)
+    int totalWidth = (slotSize * slotCount) + (slotGap * (slotCount - 1));
+
+    // Find the starting X for the first box
+    int startX = centerX - (totalWidth / 2);
+
+    // Draw each slot
+    for (int i = 0; i < 6; i++) {
+        int posX = startX + i * (slotSize + slotGap);
+
+        // Background box
+        Color bgColor = slots[i].isActive ? (Color){25, 28, 36, 255}
+                                          : (Color){18, 20, 25, 255};
+        DrawRectangle(posX, posY, slotSize, slotSize, bgColor);
+
+        // Border (accent color if active, subtle dark gray if empty)
+        Color borderColor =
+            slots[i].isActive ? slots[i].color : (Color){45, 50, 60, 255};
+        DrawRectangleLines(posX, posY, slotSize, slotSize, borderColor);
+
+        // Bottom colored accent stripe for active abilities
+        if (slots[i].isActive) {
+            DrawRectangle(posX, posY + slotSize - 5, slotSize, 5,
+                          slots[i].color);
+        }
+
+        // Hotkey badge bottom-right
+        DrawText(slots[i].hotkey, posX + slotSize - 18, posY + slotSize - 26, 16, GOLD);
+
+        // Ability name (font size 12 fits longer names like "Deafining
+        // Blast")
+        int nameFs = 12;
+        int textW = MeasureText(slots[i].name, nameFs);
+        Color textColor = slots[i].isActive ? RAYWHITE : DARKGRAY;
+        DrawText(slots[i].name, posX + (slotSize - textW) / 2,
+                 posY + (slotSize / 2) - 6, nameFs, textColor);
     }
 }
 
@@ -50,6 +100,9 @@ int main(void) {
     OrbBuffer orbBuffer;
     InitOrbBuffer(&orbBuffer);
 
+    SpellSlots spellSlots;
+    InitSpellSlots(&spellSlots);
+
     // clang-format off
     while (!WindowShouldClose()) {
         // Update
@@ -61,6 +114,9 @@ int main(void) {
         }
         if (IsKeyPressed(KEY_E)) {
             PushOrbBuffer(&orbBuffer, ORB_EXORT);
+        }
+        if (IsKeyPressed(KEY_R)) {
+            InvokeSpell(&spellSlots, &orbBuffer);
         }
 
         // Virtual Draw
@@ -98,15 +154,7 @@ int main(void) {
                 DrawText(label, posX - (textWidth / 2), startY + orbRadius + 12, 18, RAYWHITE);
             }
 
-            // Draw Invoke Button (R)
-            int invokeW = 80;
-            int invokeH = 60;
-            int invokeX = centerX - (invokeW / 2);
-            int invokeY = 560;
-            DrawRectangle(invokeX, invokeY, invokeW, invokeH, (Color){35, 30, 50, 255});
-            DrawRectangleLines(invokeX, invokeY, invokeW, invokeH, PURPLE);
-            DrawText("R", (VIRTUAL_WIDTH / 2) + (invokeW / 2) - 18, (VIRTUAL_HEIGHT / 2) - invokeH, 18, GOLD);
-            DrawText("INVOKE", invokeX + 13, invokeY + 36, 14, RAYWHITE);
+            DrawAbilitySlots(centerX, &spellSlots);
         EndTextureMode();
 
         // Draw

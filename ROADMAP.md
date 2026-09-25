@@ -48,12 +48,18 @@ flowchart TD
   - [ ] Timed entry decay / smooth alpha fade-out over time (`lifetime / max_lifetime`).
 - [ ] Render invoked spell slot badges (`D`, `F`) with active spell names and border colors.
 
-### Phase 4: UI & HUD Aesthetics
+### Phase 4: UI, HUD Aesthetics & Slot Casting
 - [ ] Design Dota 2 inspired bottom HUD bar:
   - 3 Orb indicator circles (Cyan, Violet, Orange).
   - Orb key label badges (`Q`, `W`, `E`).
-  - Invoke button (`R`) with cooldown/ready state indicator.
+  - Invoke button (`R`) with ready state indicator.
   - Two active spell slot boxes (`D`, `F`) displaying spell names and colors.
+- [ ] Implement baseline spell casting on `KEY_D` and `KEY_F`:
+  - Triggers cast sound and logs `"Cast <Spell Name> [Key]"` to the action feed.
+  - Free-Cast mode by default (0s cooldown, infinite mana for muscle-memory training).
+- [ ] Design conditional HUD Realism Overlays (for Practice toggle & Simulation mode):
+  - Glowing blue HUD Mana Bar beneath active slots with `[current / max]` text and `+regen/s`.
+  - Translucent dark cooldown sweep / overlay on slot boxes with numeric countdown timer (`14.5s`).
 - [ ] Add texture loading support (`assets/icons/`) with fallback procedural drawing when assets are absent.
 - [ ] Add smooth key-press visual feedback (scaling/pulsing orbs on press).
 
@@ -61,13 +67,14 @@ flowchart TD
 - [ ] Initialize Raylib audio system (`InitAudioDevice` / `CloseAudioDevice`).
 - [ ] Implement click/elemental audio for Quas, Wex, Exort.
 - [ ] Add Invoke activation sound.
-- [ ] Add casting audio for `D` and `F` triggers.
+- [ ] Add casting audio for `D` and `F` triggers, and "out of mana" / fizzle error cues.
 
-### Phase 6: Core Game Modes (Speed Trainer & Arcane Surge)
+### Phase 6: Core Game Modes
 
-#### 6.1 Mode: Time Attack / Speed Trainer
+#### 6.1 Mode: Time Attack / Speed Trainer (Free-Cast Rules)
 - [ ] Implement random target spell selection.
 - [ ] Display target spell banner with icon and name prominently.
+- [ ] Runs with Free-Cast rules (unlimited mana, zero cooldowns) for pure APM reaction training.
 - [ ] Implement round timer (e.g., 30 seconds countdown).
 - [ ] Evaluate invoke accuracy:
   - Correct spell $\rightarrow$ play success sound, add score, increase combo streak, pick next target.
@@ -78,9 +85,10 @@ flowchart TD
   - Average reaction time in milliseconds
   - Accuracy percentage
 
-#### 6.2 Mode: Arcane Surge / Momentum Mode (Overload Gauge)
+#### 6.2 Mode: Arcane Surge / Momentum Mode (Free-Cast Rules)
 - [ ] Implement `STATE_SURGE` mode loop and state transition:
   - Initialize gauge values (`surge_meter = 0.0f`, `surge_max = 10.0f`, `surge_decay_rate = 0.4f`).
+  - Operates under Free-Cast rules to allow rapid spell cycling.
 - [ ] Implement continuous delta-time drain:
   - `surge_meter -= surge_decay_rate * dt` (clamped to `[0.0f, surge_max]`).
 - [ ] Implement invoke volume injection on `KEY_R`:
@@ -93,6 +101,19 @@ flowchart TD
   - Text readout: `[SURGE: 7 / 10]` with pulse/flash on hit.
 - [ ] Win / Clear Condition:
   - Reaching `surge_meter >= surge_max` triggers **Surge Overload** banner, logs final completion time, and offers Next Tier escalation.
+
+#### 6.3 Mode: Match Simulation / Combo Trial (Realism Rules)
+- [ ] Implement `STATE_SIMULATION` mode loop and enable `enable_mana_and_cooldowns = true`:
+  - Initialize Mana Pool (`1000.0f` max, `+15.0f` mana/sec) and per-spell cooldown array `spell_cooldowns[SPELL_COUNT]`.
+  - Continuous delta-time updates: regenerate mana and tick down active spell cooldowns.
+- [ ] Implement strict casting constraints for `KEY_D` and `KEY_F`:
+  - Validate mana sufficiency (`current_mana >= mana_cost`) and cooldown ready (`spell_cooldowns[id] <= 0.0f`).
+  - Deduct mana cost and apply base cooldown on cast.
+  - Action log & audio feedback for `"Spell on cooldown"` or `"Not enough mana"`.
+- [ ] Implement Combo Trial challenge sequence:
+  - Display target combo chain prompt (e.g. *Eul's Combo: Tornado $\rightarrow$ Sun Strike $\rightarrow$ Chaos Meteor $\rightarrow$ Deafening Blast*).
+  - Validate sequential invocation and casting within combo timing windows.
+- [ ] Summary screen showing combo completion time, mana efficiency, and execution score.
 
 ### Phase 7: Data Persistence & Final Polish
 - [ ] Save best scores and personal records to a local file (`scores.dat`).
