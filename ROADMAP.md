@@ -36,17 +36,17 @@ flowchart TD
 - [x] Create spell registry with all 10 spells and their required $(Q, W, E)$ counts.
 - [x] Implement lookup function: `SpellId ResolveSpell(const OrbBuffer *buffer)`.
 - [x] Implement slot shift logic for Slot 1 and Slot 2 upon pressing `KEY_R`.
-- [ ] Implement On-Screen Action Log / Event Feed:
-  - [ ] Fixed-size message buffer (`MAX_LOG_ENTRIES`) without runtime heap allocations.
-  - [ ] Log orb presses with color coding:
+- [x] Implement On-Screen Action Log / Event Feed:
+  - [x] Fixed-size message buffer (`MAX_LOG_ENTRIES`) without runtime heap allocations.
+  - [x] Log orb presses with color coding:
     - `"Pressed Q (Quas)"` in Cyan
     - `"Pressed W (Wex)"` in Violet
     - `"Pressed E (Exort)"` in Amber/Orange
-  - [ ] Log spell invocations with spell theme color and recipe:
+  - [x] Log spell invocations with spell theme color and recipe:
     - Successful: `"Invoked: Forge Spirit (E E Q)"`
     - Duplicate in Slot 1: `"Already in Slot 1: Forge Spirit"`
     - Incomplete buffer: `"Cannot invoke: Need 3 orbs"`
-  - [ ] Timed entry decay / smooth alpha fade-out over time (`lifetime / max_lifetime`).
+  - [x] Timed entry decay / smooth alpha fade-out over time (`lifetime / max_lifetime`).
 - [x] Render invoked spell slot badges (`D`, `F`) with active spell names and border colors.
 
 ### Phase 4: UI, HUD & Real Dota 2 Visual Assets
@@ -62,7 +62,7 @@ flowchart TD
 - [x] Implement Raylib texture loading and rendering pipeline (`LoadTexture` / `DrawTexturePro`).
 - [x] Display authentic spell icons in active slots (`D`, `F`) and target prompt banner.
 - [x] Maintain procedural fallback drawing when icon assets are absent.
-- [ ] Integrate On-Screen Action Feed into HUD layout.
+- [x] Integrate On-Screen Action Feed into HUD layout.
 - [x] Add smooth key-press visual feedback (scaling/pulsing orbs on press).
 
 ### Phase 5: Audio & Authentic Dota 2 Sound Effects

@@ -4,6 +4,7 @@
 #include <spell.h>
 #include <stdio.h>
 #include "assets.h"
+#include "log.h"
 
 // Screen configuration
 #define VIRTUAL_WIDTH 720
@@ -360,6 +361,9 @@ int main(void) {
     };
     InvokePulse invokePulse = {0};
 
+    ActionLog actionLog;
+    InitActionLog(&actionLog);
+
     // clang-format off
     while (!WindowShouldClose()) {
         // Update
@@ -370,6 +374,8 @@ int main(void) {
                 feedback.timer = 0.0f;
             }
         }
+
+        UpdateActionLog(&actionLog, dt);
 
         // Decay active orb animations
         for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
@@ -386,12 +392,15 @@ int main(void) {
 
         if (IsKeyPressed(KEY_Q)) {
             PushOrbWithAnim(&orbBuffer, &orbAnim, ORB_QUAS);
+            LogOrbPress(&actionLog, ORB_QUAS);
         }
         if (IsKeyPressed(KEY_W)) {
             PushOrbWithAnim(&orbBuffer, &orbAnim, ORB_WEX);
+            LogOrbPress(&actionLog, ORB_WEX);
         }
         if (IsKeyPressed(KEY_E)) {
             PushOrbWithAnim(&orbBuffer, &orbAnim, ORB_EXORT);
+            LogOrbPress(&actionLog, ORB_EXORT);
         }
         if (IsKeyPressed(KEY_R)) {
             invokePulse.timer = 0.35f;
@@ -402,6 +411,7 @@ int main(void) {
                 feedback.maxDuration = 0.85f;
                 feedback.color = (Color){255, 180, 50, 255};
                 snprintf(feedback.text, sizeof(feedback.text), "NEED 3 ORBS");
+                LogSpellInvoke(&actionLog, SPELL_NONE, &orbBuffer, false);
             } else {
                 SpellId invokedSpell = ResolveSpell(&orbBuffer);
 
@@ -430,7 +440,8 @@ int main(void) {
                     snprintf(feedback.text, sizeof(feedback.text), "MISS!");
                 }
 
-                InvokeSpell(&spellSlots, &orbBuffer);
+                bool changed = InvokeSpell(&spellSlots, &orbBuffer);
+                LogSpellInvoke(&actionLog, invokedSpell, &orbBuffer, changed);
             }
         }
 
@@ -438,11 +449,18 @@ int main(void) {
         BeginTextureMode(target);
             ClearBackground(bgColor);
 
+            int centerX = VIRTUAL_WIDTH / 2;
+
             DrawTitle();
             DrawScoreBar(score, streak);
             DrawTargetSpellCard(targetSpell, &feedback, &assets);
             DrawOrbs(&orbBuffer, &assets, &orbAnim);
             DrawAbilitySlots(&spellSlots, &assets, &invokePulse);
+
+            int feedW = (100 * 6) + (10 * 5); // 650px, perfectly matches ability slots width
+            int feedY = 915;
+            int feedH = (VIRTUAL_HEIGHT - 25) - feedY; // 340px, fills all available bottom space
+            DrawActionLog(&actionLog, centerX, feedY, feedW, feedH);
         EndTextureMode();
 
         // Draw
