@@ -29,6 +29,31 @@ void UpdateSpellbookScreen(GameContext *ctx, float dt, Vector2 mouse) {
     }
 }
 
+static void DrawRecipeOrb(const GameAssets *assets, OrbType orb, int bx, int by, float radius) {
+    Color baseColor = GetOrbColor(orb);
+    Texture2D tex = GetCircularOrbTexture(assets, orb);
+
+    if (tex.id > 0) {
+        // Dark circular backing
+        DrawCircle(bx, by, radius, (Color){15, 18, 24, 255});
+
+        // Scaled circular orb texture
+        Rectangle src = {0.0f, 0.0f, (float)tex.width, (float)tex.height};
+        Rectangle dest = {(float)bx - radius, (float)by - radius, radius * 2.0f, radius * 2.0f};
+        DrawTexturePro(tex, src, dest, (Vector2){0, 0}, 0.0f, WHITE);
+
+        // Subtle glowing elemental rim
+        DrawCircleLines(bx, by, radius, baseColor);
+        DrawCircleLines(bx, by, radius + 1.0f, ColorAlpha(baseColor, 0.55f));
+    } else {
+        // Fallback if texture is not loaded
+        DrawCircle(bx, by, radius, baseColor);
+        DrawCircleLines(bx, by, radius + 1.0f, WHITE);
+        const char *letter = (orb == ORB_QUAS) ? "Q" : (orb == ORB_WEX) ? "W" : "E";
+        DrawText(letter, bx - 5, by - 6, 13, BLACK);
+    }
+}
+
 void DrawSpellbookScreen(const GameContext *ctx, Vector2 mouse) {
     ClearBackground((Color){16, 18, 24, 255});
 
@@ -105,34 +130,28 @@ void DrawSpellbookScreen(const GameContext *ctx, Vector2 mouse) {
         else if (id == SPELL_FORGE_SPIRIT) desc = "Armor-Melting Elemental";
         DrawText(desc, rowX + 110, y + 42, 13, (Color){130, 135, 150, 255});
 
-        // Recipe Badges on the right
-        // We know each spell needs exactly 3 orbs: req_quas, req_wex, req_exort
+        // Recipe Badges on the right using circular orb icons
         int orbIdx = 0;
-        int badgeStartX = rowX + rowW - 130;
-        int badgeRadius = 14;
+        int badgeStartX = rowX + rowW - 135;
+        float badgeRadius = 17.0f;
+        int orbSpacing = 40;
 
         for (int q = 0; q < info->req_quas; q++) {
-            int bx = badgeStartX + (orbIdx * 38);
+            int bx = badgeStartX + (orbIdx * orbSpacing);
             int by = y + rowH / 2;
-            DrawCircle(bx, by, (float)badgeRadius, (Color){0, 210, 255, 230});
-            DrawCircleLines(bx, by, (float)badgeRadius + 1.0f, WHITE);
-            DrawText("Q", bx - 5, by - 6, 13, BLACK);
+            DrawRecipeOrb(ctx->assets, ORB_QUAS, bx, by, badgeRadius);
             orbIdx++;
         }
         for (int w = 0; w < info->req_wex; w++) {
-            int bx = badgeStartX + (orbIdx * 38);
+            int bx = badgeStartX + (orbIdx * orbSpacing);
             int by = y + rowH / 2;
-            DrawCircle(bx, by, (float)badgeRadius, (Color){224, 64, 251, 230});
-            DrawCircleLines(bx, by, (float)badgeRadius + 1.0f, WHITE);
-            DrawText("W", bx - 5, by - 6, 13, BLACK);
+            DrawRecipeOrb(ctx->assets, ORB_WEX, bx, by, badgeRadius);
             orbIdx++;
         }
         for (int e = 0; e < info->req_exort; e++) {
-            int bx = badgeStartX + (orbIdx * 38);
+            int bx = badgeStartX + (orbIdx * orbSpacing);
             int by = y + rowH / 2;
-            DrawCircle(bx, by, (float)badgeRadius, (Color){255, 87, 34, 230});
-            DrawCircleLines(bx, by, (float)badgeRadius + 1.0f, WHITE);
-            DrawText("E", bx - 5, by - 6, 13, BLACK);
+            DrawRecipeOrb(ctx->assets, ORB_EXORT, bx, by, badgeRadius);
             orbIdx++;
         }
     }
