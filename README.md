@@ -44,10 +44,12 @@ The Invoker Game challenges players to rapidly manipulate three elemental reagen
 
 ---
 
-## Game Modes
+## Game Modes & Features
 
 * **Practice / Sandbox**: Freeform spell invocation and casting with on-screen visual feedback and action logging.
 * **Speed Trainer / Time Attack**: The core challenge! Race against a 30- or 60-second timer to invoke randomly prompted target spells with combo multipliers and APM tracking.
+* **Interactive Spell Book**: Catalog of all 10 spells with animated recipe badges and click-to-audition Dota 2 spell cast audio cues.
+* **Settings & Audio Controls**: In-game configuration screen with sliders and toggles for Master/SFX/Voice/Music volumes, round timer, recipe helper, and fullscreen mode.
 * **Quiz / Memorization**: Untimed recipe practice mode to build initial muscle memory.
 
 ---
@@ -70,6 +72,7 @@ Extended mechanics and alternate playstyles are maintained in dedicated reposito
 | Invoke Spell | `R` |
 | Cast Primary Spell (Slot 1) | `D` |
 | Cast Secondary Spell (Slot 2) | `F` |
+| Back to Menu / Pause | `Escape` |
 
 ---
 
@@ -131,17 +134,30 @@ invoker-game/
 ├── PLANNING.md          # Architectural blueprints and game design specification
 ├── ROADMAP.md           # Milestone flowchart, phase breakdown, and task checklists
 ├── README.md            # Project overview and instructions
-├── assets/              # Audio files, custom fonts, and spell/orb icons
+├── assets/              # Authentic Dota 2 spell/orb icons and audio cues
+│   ├── icons/           # Quas, Wex, Exort, Invoke, and 10 spell icons
+│   └── sounds/          # Orb clicks, invoke sound, spell audio cues, voice lines
 ├── include/
-│   ├── config.h         # Global constants, window metrics, and input keybindings
+│   ├── assets.h         # Texture and icon asset manager interface
+│   ├── audio.h          # Audio manager interface (SFX, music, voice cues)
+│   ├── config.h         # Game settings, window dimensions, and persistence
+│   ├── log.h            # On-screen action log and event feed
 │   ├── orb.h            # Orb types, buffer definitions, and FIFO operations
-│   ├── spell.h          # 10-spell lookup table, recipe matching, and slot logic
-│   └── ui.h             # HUD layout, action log feed, and rendering routines
+│   ├── screen.h         # Screen state machine, transitions, and screen modules
+│   └── spell.h          # 10-spell lookup table, recipe matching, and slot logic
 └── src/
+    ├── assets.c         # Texture and icon loading/unloading
+    ├── audio.c          # Raylib audio loading, sound effects, voice cues
+    ├── log.c            # Action log FIFO ring buffer and HUD rendering
     ├── main.c           # Entry point and Raylib render loop
     ├── orb.c            # Orb state manipulation and FIFO queue implementation
-    ├── spell.c          # Spell registry, recipe resolution, and slot shifting
-    └── ui.c             # Immediate-mode HUD, action logging, and graphics
+    ├── screen.c         # Screen state machine and transition handling
+    ├── screen_gameplay.c# Gameplay screen (Practice & Time Attack)
+    ├── screen_logo.c    # Animated Raylib splash screen
+    ├── screen_menu.c    # Main menu screen
+    ├── screen_settings.c# Settings screen (audio sliders, gameplay toggles)
+    ├── screen_spellbook.c# Interactive spell catalog screen
+    └── spell.c          # Spell registry, recipe resolution, and slot shifting
 ```
 
 ---

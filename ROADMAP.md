@@ -12,7 +12,7 @@ flowchart TD
     M2 --> M3["Phase 3: Invoke Engine & Action Log"]
     M3 --> M4["Phase 4: HUD & Dota 2 Visual Assets"]
     M4 --> M5["Phase 5: Audio & Dota 2 Sound Effects"]
-    M5 --> M6["Phase 6: Screen Management & Main Menu"]
+    M5 --> M6["Phase 6: Screen Management, Menu & Settings"]
     M6 --> M7["Phase 7: Speed Trainer (Time Attack)"]
     M7 --> M8["Phase 8: High Scores & Polish"]
     M8 --> M9["Phase 9: WebAssembly Export (Emscripten)"]
@@ -78,17 +78,17 @@ flowchart TD
   - On streak loss / miss ("My mind... unravels!").
 - [x] Implement pitch variation / randomization on orb clicks for natural audio feel.
 
-### Phase 6: Screen Management, Splash Screen & Main Menu
+### Phase 6: Screen Management, Splash Screen, Menu & Settings
 - [x] Implement procedural animated "Powered by Raylib" Splash Screen (`SCREEN_LOGO`) following [`.agents/skills/raylib-splash-screen/SKILL.md`](./.agents/skills/raylib-splash-screen/SKILL.md):
   - 4-state procedural animation: blinking cursor $\rightarrow$ expanding border bars $\rightarrow$ typewriter `"raylib"` text $\rightarrow$ alpha fade-out.
   - Immediate skip functionality on `KEY_SPACE`, `KEY_ENTER`, `KEY_ESCAPE`, or mouse click.
   - Seamless auto-transition from `SCREEN_LOGO` to `SCREEN_MENU`.
 - [x] Implement enum-driven screen state machine following [`.agents/skills/raylib-screen-management/SKILL.md`](./.agents/skills/raylib-screen-management/SKILL.md):
-  - Screen enum: `SCREEN_LOGO`, `SCREEN_MENU`, `SCREEN_PRACTICE`, `SCREEN_TIME_ATTACK`, `SCREEN_SPELLBOOK`, `SCREEN_GAME_OVER`.
+  - Screen enum: `SCREEN_LOGO`, `SCREEN_MENU`, `SCREEN_PRACTICE`, `SCREEN_TIME_ATTACK`, `SCREEN_SPELLBOOK`, `SCREEN_SETTINGS`, `SCREEN_GAME_OVER`.
   - Dual-switch update (`Update...Screen()`) and draw (`Draw...Screen()`) loop architecture.
 - [x] Design Dota 2 inspired Title / Main Menu Screen:
   - Invoker hero portrait frame, title banner, and elemental badge styling.
-  - Interactive menu buttons: Practice Mode, Time Attack, Spell Book, Exit.
+  - Interactive menu buttons: Practice Mode, Time Attack, Spell Book, Settings, Exit.
   - Full keyboard navigation (`KEY_UP`, `KEY_DOWN`, `KEY_ENTER`, number hotkeys) and mouse hover/click interaction.
 - [x] Screen transitions and state initialization:
   - Smooth fade-in and fade-out alpha transitions (`ScreenTransition`).
@@ -96,6 +96,22 @@ flowchart TD
   - Quick return to menu on `KEY_ESCAPE`.
 - [x] Interactive Spell Book screen (`SCREEN_SPELLBOOK`):
   - Catalog of all 10 spells with icons, elemental recipe badges, and click-to-audition audio playback.
+- [ ] Settings & Configuration screen (`SCREEN_SETTINGS`):
+  - Interactive audio controls with volume sliders and mute toggles:
+    - Master Volume (`0.0f` to `1.0f`)
+    - SFX Volume (`0.0f` to `1.0f`) & Mute Toggle (orb clicks, invoke sound)
+    - Hero Voice Volume (`0.0f` to `1.0f`) & Mute Toggle (Invoker voice lines)
+    - Music Volume (`0.0f` to `1.0f`) & Mute Toggle
+  - Gameplay preference toggles:
+    - Round duration selector (30s / 60s for Time Attack)
+    - Recipe Helper toggle (on-screen 10-spell cheat sheet)
+    - Action Feed toggle (on-screen event log)
+    - Screen Shake toggle (heavy spell cast feedback)
+  - Display options:
+    - Fullscreen toggle (`ToggleFullscreen()`)
+  - Zero-allocation binary file persistence:
+    - `SaveSettings(&ctx->settings)` and `LoadSettings(&ctx->settings)` to `settings.dat`.
+    - Fallback defaults if configuration file is missing or corrupted.
 
 ### Phase 7: Speed Trainer Mode (Time Attack)
 - [x] Implement random target spell selection.
@@ -113,7 +129,7 @@ flowchart TD
 ### Phase 8: High Scores & v1.0 Polish
 - [ ] Save best scores and personal records to a local file (`scores.dat`).
 - [ ] Add simple particle system for orb trails and invoke burst.
-- [ ] Settings/help overlay for keybindings and spell recipe list.
+- [ ] Keybinding customization and help overlay for quick in-game reference.
 - [ ] Release v1.0!
 
 ### Phase 9: WebAssembly & HTML5 Export (Emscripten)

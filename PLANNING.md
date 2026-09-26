@@ -96,25 +96,32 @@ To maintain high velocity and zero friction, extended gameplay styles have been 
 invoker-game/
 ├── Makefile             # Build automation
 ├── AGENTS.md            # Guidelines for AI assistants
-├── PLANNING.md          # Master architecture and roadmap
+├── PLANNING.md          # Master architecture and design specifications
+├── ROADMAP.md           # Milestone flowchart, phase breakdown, and task checklists
 ├── assets/
-│   ├── fonts/           # Clean HUD fonts (e.g. TTF)
 │   ├── icons/           # Quas, Wex, Exort, Invoke, 10 spell icons
-│   └── sounds/          # Orb clicks, invoke sound, spell audio cues
+│   └── sounds/          # Orb clicks, invoke sound, spell audio cues, voice lines
 ├── include/
-│   ├── audio.h          # Audio manager interface
-│   ├── config.h         # Game constants, window dimensions, keybindings
-│   ├── game.h           # Game state machine and loop declarations
+│   ├── assets.h         # Texture and icon asset manager interface
+│   ├── audio.h          # Audio manager interface (SFX, music, voice cues)
+│   ├── config.h         # Game settings, window dimensions, and persistence
+│   ├── log.h            # On-screen action log and event feed
 │   ├── orb.h            # Orb types, buffer logic, formula matching
-│   ├── spell.h          # Spell definitions, properties, lookup
-│   └── ui.h             # HUD layout, drawing functions, particle effects
+│   ├── screen.h         # Screen state machine, transitions, and screen modules
+│   └── spell.h          # Spell definitions, properties, lookup
 └── src/
-    ├── audio.c          # Raylib audio loading and playback
-    ├── game.c           # Mode logic (Time Attack, Sandbox, State switches)
+    ├── assets.c         # Texture and icon loading/unloading
+    ├── audio.c          # Raylib audio loading, sound effects, voice cues
+    ├── log.c            # Action log FIFO ring buffer and HUD rendering
     ├── main.c           # Program entry point, main loop, init/shutdown
     ├── orb.c            # FIFO buffer operations, orb inputs
-    ├── spell.c          # 10-spell registry and combination resolver
-    └── ui.c             # Raylib rendering for orbs, slots, timers, and HUD
+    ├── screen.c         # Screen state machine and transition handling
+    ├── screen_gameplay.c# Gameplay screen (Practice & Time Attack)
+    ├── screen_logo.c    # Animated Raylib splash screen
+    ├── screen_menu.c    # Main menu screen
+    ├── screen_settings.c# Settings screen (audio sliders, gameplay toggles)
+    ├── screen_spellbook.c# Interactive spell catalog screen
+    └── spell.c          # 10-spell registry and combination resolver
 ```
 
 ### 4.2 Key Data Structures
@@ -165,33 +172,70 @@ typedef struct {
 } SpellSlots;
 ```
 
-#### Game State Machine (`include/game.h`)
+#### Game State Machine (`include/screen.h`)
 ```c
 typedef enum {
-    STATE_MENU,
-    STATE_PRACTICE,
-    STATE_TIME_ATTACK,
-    STATE_QUIZ,
-    STATE_GAME_OVER
-} GameState;
+    SCREEN_LOGO = 0,
+    SCREEN_MENU,
+    SCREEN_PRACTICE,
+    SCREEN_TIME_ATTACK,
+    SCREEN_SPELLBOOK,
+    SCREEN_SETTINGS,
+    SCREEN_GAME_OVER
+} GameScreen;
 
 typedef struct {
-    GameState state;
-    OrbBuffer orb_buffer;
-    SpellSlots spell_slots;
-    
-    // Time Attack metrics
-    SpellId target_spell;
-    float timer_remaining;
-    float reaction_timer;
-    int score;
+    GameScreen currentScreen;
+    bool shouldExit;
+
+    // Subsystems
+    const GameAssets *assets;
+    AudioManager *audio;
+
+    // Gameplay state
+    OrbBuffer orbBuffer;
+    SpellSlots spellSlots;
+    ActionLog actionLog;
+    SpellId targetSpell;
     int streak;
-    int highest_streak;
-    int total_attempted;
-    int total_correct;
-    float total_reaction_time;
+    int score;
+    int highestStreak;
+    int totalAttempted;
+    int totalCorrect;
+
+    // Timer mode
+    float roundTimer;
+    float maxRoundTimer;
+    bool isTimedMode;
+
+    // Global Settings
+    GameSettings settings;
 } GameContext;
 ```
+
+#### Configuration & Settings (`include/config.h`)
+```c
+typedef struct {
+    // Audio configuration
+    float master_volume;     // 0.0f to 1.0f
+    float sfx_volume;        // 0.0f to 1.0f
+    float voice_volume;      // 0.0f to 1.0f
+    float music_volume;      // 0.0f to 1.0f
+    bool sfx_muted;
+    bool voice_muted;
+    bool music_muted;
+
+    // Gameplay preferences
+    int round_duration;      // 30 or 60 seconds
+    bool show_recipe_helper; // Display 10-spell cheat-sheet on screen
+    bool show_action_feed;   // Display on-screen event log
+    bool screen_shake;       // Camera shake on heavy spells
+
+    // Display
+    bool fullscreen;
+} GameSettings;
+```
+- **Persistence**: Saved to/loaded from `settings.dat` via binary `fwrite`/`fread`. Falls back to defaults if the file is absent.
 
 #### On-Screen Action Log / Event Feed (`include/ui.h`)
 ```c
