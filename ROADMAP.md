@@ -63,7 +63,7 @@ flowchart TD
 - [x] Display authentic spell icons in active slots (`D`, `F`) and target prompt banner.
 - [x] Maintain procedural fallback drawing when icon assets are absent.
 - [ ] Integrate On-Screen Action Feed into HUD layout.
-- [ ] Add smooth key-press visual feedback (scaling/pulsing orbs on press).
+- [x] Add smooth key-press visual feedback (scaling/pulsing orbs on press).
 
 ### Phase 5: Audio & Authentic Dota 2 Sound Effects
 - [ ] Initialize Raylib audio system (`InitAudioDevice` / `CloseAudioDevice`).

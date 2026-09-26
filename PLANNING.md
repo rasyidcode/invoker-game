@@ -239,3 +239,5 @@ The actionable development phases, phase diagram, and active progress checklists
 3. **Deterministic State Updates**:
    - Separate state mutation (`UpdateGame(float dt)`) from rendering (`DrawGame()`).
    - Keep input handling responsive and tied to frame delta time for animations.
+4. **WebAssembly / Emscripten Compatibility**:
+   - Structure the main loop so the frame tick can be called either via a standard `while (!WindowShouldClose())` loop (desktop) or via `emscripten_set_main_loop()` under `#if defined(PLATFORM_WEB)`.

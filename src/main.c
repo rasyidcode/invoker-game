@@ -22,6 +22,28 @@ typedef struct {
     float maxDuration;
 } QuizFeedback;
 
+// Animation state for active orbs (pop scale & glow flash)
+typedef struct {
+    float scale[MAX_ACTIVE_ORBS];
+    float flashAlpha[MAX_ACTIVE_ORBS];
+} OrbAnimState;
+
+// Animation pulse for Invoke ability
+typedef struct {
+    float timer;
+    float maxDuration;
+} InvokePulse;
+
+static void PushOrbWithAnim(OrbBuffer *buffer, OrbAnimState *anim, OrbType orb) {
+    PushOrbBuffer(buffer, orb);
+    anim->scale[0] = anim->scale[1];
+    anim->scale[1] = anim->scale[2];
+    anim->scale[2] = 1.35f; // +35% punch pop
+    anim->flashAlpha[0] = anim->flashAlpha[1];
+    anim->flashAlpha[1] = anim->flashAlpha[2];
+    anim->flashAlpha[2] = 1.0f; // bright flash
+}
+
 static void DrawTitle(void) {
     int centerX = VIRTUAL_WIDTH / 2;
 
@@ -136,35 +158,52 @@ static void DrawTargetSpellCard(SpellId targetSpell, const QuizFeedback *feedbac
     }
 }
 
-// Helper to draw the active orbs using authentic circular assets
-static void DrawOrbs(OrbBuffer *orbBuffer, const GameAssets *assets) {
+// Helper to draw the active orbs using authentic circular assets with bobbing and pop animations
+static void DrawOrbs(OrbBuffer *orbBuffer, const GameAssets *assets, const OrbAnimState *anim) {
     int centerX = VIRTUAL_WIDTH / 2;
     int startY = VIRTUAL_HEIGHT / 2;
     int orbRadius = 64;
     int orbSpacing = orbRadius * 2 + 25;
+    float time = (float)GetTime();
 
     for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
         int posX = centerX + (i - 1) * orbSpacing;
         OrbType orb = orbBuffer->orbs[i];
         Color orbColor = GetOrbColor(orb);
 
+        // Subtle floating bobbing motion like Dota 2 hovering orbs
+        float bobY = (orb != ORB_NONE) ? sinf(time * 3.5f + (float)i * 2.0f) * 6.0f : 0.0f;
+        float currentY = (float)startY + bobY;
+        float currentScale = anim ? anim->scale[i] : 1.0f;
+        float currentRadius = (float)orbRadius * currentScale;
+
         if (orb != ORB_NONE) {
             Texture2D tex = GetCircularOrbTexture(assets, orb);
             if (tex.id > 0) {
-                // 1. Draw circular texture centered at (posX, startY)
+                // 1. Draw scaled circular texture centered at (posX, currentY)
                 Rectangle src = {0.0f, 0.0f, (float)tex.width, (float)tex.height};
-                Rectangle dest = {(float)(posX - orbRadius), (float)(startY - orbRadius),
-                                  (float)(orbRadius * 2), (float)(orbRadius * 2)};
+                Rectangle dest = {(float)posX - currentRadius, currentY - currentRadius,
+                                  currentRadius * 2.0f, currentRadius * 2.0f};
                 DrawTexturePro(tex, src, dest, (Vector2){0, 0}, 0.0f, WHITE);
 
                 // 2. Layered glowing elemental rim
-                DrawCircleLines(posX, startY, orbRadius + 1, orbColor);
-                DrawCircleLines(posX, startY, orbRadius + 2, ColorAlpha(orbColor, 0.7f));
-                DrawCircleLines(posX, startY, orbRadius + 4, ColorAlpha(orbColor, 0.3f));
+                DrawCircleLines((int)posX, (int)currentY, currentRadius + 1.0f, orbColor);
+                DrawCircleLines((int)posX, (int)currentY, currentRadius + 2.0f, ColorAlpha(orbColor, 0.7f));
+                DrawCircleLines((int)posX, (int)currentY, currentRadius + 4.0f, ColorAlpha(orbColor, 0.3f));
+
+                // 3. Entry flash / shockwave ripple on new orb
+                if (anim && anim->flashAlpha[i] > 0.0f) {
+                    float expand = (1.0f - anim->flashAlpha[i]) * 24.0f;
+                    DrawCircleLines((int)posX, (int)currentY, currentRadius + expand,
+                                    ColorAlpha(orbColor, anim->flashAlpha[i] * 0.85f));
+                    // White core flash
+                    DrawCircle((int)posX, (int)currentY, currentRadius * 0.6f,
+                               ColorAlpha(WHITE, anim->flashAlpha[i] * 0.4f));
+                }
             } else {
                 // Procedural fallback
-                DrawCircle(posX, startY, orbRadius + 4, (Color){30, 34, 42, 255});
-                DrawCircle(posX, startY, orbRadius, orbColor);
+                DrawCircle(posX, (int)currentY, currentRadius + 4.0f, (Color){30, 34, 42, 255});
+                DrawCircle(posX, (int)currentY, currentRadius, orbColor);
             }
         } else {
             // Empty orb socket
@@ -181,8 +220,8 @@ static void DrawOrbs(OrbBuffer *orbBuffer, const GameAssets *assets) {
     }
 }
 
-// Helper to draw an invoked spell slot box
-static void DrawAbilitySlots(SpellSlots *spellSlots, const GameAssets *assets) {
+// Helper to draw an invoked spell slot box with button press feedback and invoke ripple
+static void DrawAbilitySlots(SpellSlots *spellSlots, const GameAssets *assets, const InvokePulse *pulse) {
     int centerX = VIRTUAL_WIDTH / 2;
 
     int slotCount = 6;
@@ -190,85 +229,100 @@ static void DrawAbilitySlots(SpellSlots *spellSlots, const GameAssets *assets) {
     int slotGap = 10;
     int posY = VIRTUAL_HEIGHT / 2 + 150;
 
-    // Fetch info for active invoked spells
     const SpellInfo *info1 = GetSpellInfo(spellSlots->slot1);
     const SpellInfo *info2 = GetSpellInfo(spellSlots->slot2);
 
-    // Prepare data for all 6 slots
     typedef struct {
         const char *hotkey;
         const char *name;
         Color color;
         bool isActive;
         Texture2D icon;
+        KeyboardKey key;
     } AbilitySlotUI;
 
     AbilitySlotUI slots[6] = {
         (AbilitySlotUI){"Q", "Quas", (Color){0, 210, 255, 255}, true,
-                        GetOrbTexture(assets, ORB_QUAS)},
+                        GetOrbTexture(assets, ORB_QUAS), KEY_Q},
         (AbilitySlotUI){"W", "Wex", (Color){224, 64, 251, 255}, true,
-                        GetOrbTexture(assets, ORB_WEX)},
+                        GetOrbTexture(assets, ORB_WEX), KEY_W},
         (AbilitySlotUI){"E", "Exort", (Color){255, 87, 34, 255}, true,
-                        GetOrbTexture(assets, ORB_EXORT)},
+                        GetOrbTexture(assets, ORB_EXORT), KEY_E},
         (AbilitySlotUI){"D", info1 ? info1->name : "Empty",
                         info1 ? info1->color : (Color){45, 50, 60, 255},
                         info1 != NULL,
-                        GetSpellTexture(assets, spellSlots->slot1)},
+                        GetSpellTexture(assets, spellSlots->slot1), KEY_D},
         (AbilitySlotUI){"F", info2 ? info2->name : "Empty",
                         info2 ? info2->color : (Color){45, 50, 60, 255},
                         info2 != NULL,
-                        GetSpellTexture(assets, spellSlots->slot2)},
+                        GetSpellTexture(assets, spellSlots->slot2), KEY_F},
         (AbilitySlotUI){"R", "Invoke", (Color){186, 85, 211, 255}, true,
-                        GetInvokeTexture(assets)},
+                        GetInvokeTexture(assets), KEY_R},
     };
 
-    // Calculate total row width (all boxes + interior gaps only)
     int totalWidth = (slotSize * slotCount) + (slotGap * (slotCount - 1));
-
-    // Find the starting X for the first box
     int startX = centerX - (totalWidth / 2);
 
-    // Draw each slot
     for (int i = 0; i < 6; i++) {
         int posX = startX + i * (slotSize + slotGap);
+        bool isPressed = IsKeyDown(slots[i].key);
+        // Depress button downwards by 3px when active
+        int drawY = isPressed ? (posY + 3) : posY;
 
         // Draw authentic icon if available
         if (slots[i].icon.id > 0) {
             DrawTexturePro(slots[i].icon,
                            (Rectangle){0, 0, (float)slots[i].icon.width, (float)slots[i].icon.height},
-                           (Rectangle){(float)posX, (float)posY, (float)slotSize, (float)slotSize},
+                           (Rectangle){(float)posX, (float)drawY, (float)slotSize, (float)slotSize},
                            (Vector2){0, 0}, 0.0f, WHITE);
+            if (isPressed) {
+                // Bright click highlight overlay
+                DrawRectangle(posX, drawY, slotSize, slotSize, (Color){255, 255, 255, 60});
+            }
         } else {
             // Background box fallback
             Color bgColor = slots[i].isActive ? (Color){25, 28, 36, 255}
                                               : (Color){18, 20, 25, 255};
-            DrawRectangle(posX, posY, slotSize, slotSize, bgColor);
+            if (isPressed) bgColor = (Color){40, 45, 58, 255};
+            DrawRectangle(posX, drawY, slotSize, slotSize, bgColor);
 
             // Ability name fallback
             int nameFs = 12;
             int textW = MeasureText(slots[i].name, nameFs);
             Color textColor = slots[i].isActive ? RAYWHITE : DARKGRAY;
             DrawText(slots[i].name, posX + (slotSize - textW) / 2,
-                     posY + (slotSize / 2) - 6, nameFs, textColor);
+                     drawY + (slotSize / 2) - 6, nameFs, textColor);
         }
 
-        // Border (accent color if active, subtle dark gray if empty)
-        Color borderColor =
-            slots[i].isActive ? slots[i].color : (Color){45, 50, 60, 255};
-        DrawRectangleLines(posX, posY, slotSize, slotSize, borderColor);
+        // Border: highlights white and thickens when pressed
+        Color borderColor = isPressed ? WHITE : (slots[i].isActive ? slots[i].color : (Color){45, 50, 60, 255});
+        float borderThickness = isPressed ? 2.5f : 1.0f;
+        DrawRectangleLinesEx((Rectangle){(float)posX, (float)drawY, (float)slotSize, (float)slotSize},
+                             borderThickness, borderColor);
 
         // Bottom colored accent stripe for active abilities
-        if (slots[i].isActive) {
-            DrawRectangle(posX, posY + slotSize - 5, slotSize, 5,
-                          slots[i].color);
+        if (slots[i].isActive && !isPressed) {
+            DrawRectangle(posX, drawY + slotSize - 5, slotSize, 5, slots[i].color);
         }
 
-        // Hotkey badge bottom-right with dark translucent backing for readability over icons
+        // Hotkey badge bottom-right with dark translucent backing
         int hkFs = 16;
         int hkW = MeasureText(slots[i].hotkey, hkFs);
-        DrawRectangle(posX + slotSize - hkW - 8, posY + slotSize - 26, hkW + 6, 20, (Color){0, 0, 0, 190});
-        DrawText(slots[i].hotkey, posX + slotSize - hkW - 5, posY + slotSize - 24,
-                 hkFs, GOLD);
+        DrawRectangle(posX + slotSize - hkW - 8, drawY + slotSize - 26, hkW + 6, 20, (Color){0, 0, 0, 190});
+        Color hkColor = isPressed ? WHITE : GOLD;
+        DrawText(slots[i].hotkey, posX + slotSize - hkW - 5, drawY + slotSize - 24,
+                 hkFs, hkColor);
+
+        // Special: Invoke shockwave ripple for slot 5 (R)
+        if (i == 5 && pulse && pulse->timer > 0.0f) {
+            float pRatio = pulse->timer / pulse->maxDuration;
+            float pProgress = 1.0f - pRatio;
+            float rippleRadius = (float)slotSize * 0.5f + pProgress * 55.0f;
+            DrawCircleLines(posX + slotSize / 2, drawY + slotSize / 2, rippleRadius,
+                            ColorAlpha((Color){220, 100, 255, 255}, pRatio * 0.9f));
+            DrawCircleLines(posX + slotSize / 2, drawY + slotSize / 2, rippleRadius + 2.0f,
+                            ColorAlpha((Color){186, 85, 211, 255}, pRatio * 0.6f));
+        }
     }
 }
 
@@ -300,6 +354,11 @@ int main(void) {
 
     int streak = 0, score = 0;
     QuizFeedback feedback = {0};
+    OrbAnimState orbAnim = {
+        .scale = {1.0f, 1.0f, 1.0f},
+        .flashAlpha = {0.0f, 0.0f, 0.0f},
+    };
+    InvokePulse invokePulse = {0};
 
     // clang-format off
     while (!WindowShouldClose()) {
@@ -312,16 +371,32 @@ int main(void) {
             }
         }
 
+        // Decay active orb animations
+        for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
+            orbAnim.scale[i] += (1.0f - orbAnim.scale[i]) * 14.0f * dt;
+            orbAnim.flashAlpha[i] -= 3.5f * dt;
+            if (orbAnim.flashAlpha[i] < 0.0f) orbAnim.flashAlpha[i] = 0.0f;
+        }
+
+        // Decay invoke shockwave pulse
+        if (invokePulse.timer > 0.0f) {
+            invokePulse.timer -= dt;
+            if (invokePulse.timer < 0.0f) invokePulse.timer = 0.0f;
+        }
+
         if (IsKeyPressed(KEY_Q)) {
-            PushOrbBuffer(&orbBuffer, ORB_QUAS);
+            PushOrbWithAnim(&orbBuffer, &orbAnim, ORB_QUAS);
         }
         if (IsKeyPressed(KEY_W)) {
-            PushOrbBuffer(&orbBuffer, ORB_WEX);
+            PushOrbWithAnim(&orbBuffer, &orbAnim, ORB_WEX);
         }
         if (IsKeyPressed(KEY_E)) {
-            PushOrbBuffer(&orbBuffer, ORB_EXORT);
+            PushOrbWithAnim(&orbBuffer, &orbAnim, ORB_EXORT);
         }
         if (IsKeyPressed(KEY_R)) {
+            invokePulse.timer = 0.35f;
+            invokePulse.maxDuration = 0.35f;
+
             if (orbBuffer.count < MAX_ACTIVE_ORBS) {
                 feedback.timer = 0.85f;
                 feedback.maxDuration = 0.85f;
@@ -366,8 +441,8 @@ int main(void) {
             DrawTitle();
             DrawScoreBar(score, streak);
             DrawTargetSpellCard(targetSpell, &feedback, &assets);
-            DrawOrbs(&orbBuffer, &assets);
-            DrawAbilitySlots(&spellSlots, &assets);
+            DrawOrbs(&orbBuffer, &assets, &orbAnim);
+            DrawAbilitySlots(&spellSlots, &assets, &invokePulse);
         EndTextureMode();
 
         // Draw
