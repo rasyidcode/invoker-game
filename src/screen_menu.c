@@ -63,6 +63,19 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
     // Activation (Enter, Space, or Mouse Left Click)
     bool activate = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE);
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        // Check orb icons click easter egg
+        int orbSpacing = 68;
+        int orbY = 460;
+        float orbR = 24.0f;
+        for (int i = 0; i < 3; i++) {
+            float posX = (float)(centerX + (i - 1) * orbSpacing);
+            if (CheckCollisionPointCircle(mouse, (Vector2){posX, (float)orbY}, orbR)) {
+                OrbType clicked = (i == 0) ? ORB_QUAS : ((i == 1) ? ORB_WEX : ORB_EXORT);
+                PlayOrbSound(ctx->audio, clicked);
+                break;
+            }
+        }
+
         for (int i = 0; i < MENU_ITEM_COUNT; i++) {
             int btnY = MENU_BTN_START_Y + i * (MENU_BTN_HEIGHT + MENU_BTN_GAP);
             Rectangle btnRec = {(float)buttonX, (float)btnY, (float)MENU_BTN_WIDTH, (float)MENU_BTN_HEIGHT};
@@ -145,28 +158,51 @@ void DrawMenuScreen(const GameContext *ctx, Vector2 mouse) {
     int sub2W = MeasureText(sub2, sub2Fs);
     DrawText(sub2, centerX - sub2W / 2, 408, sub2Fs, (Color){140, 145, 160, 255});
 
-    // 3 Elemental Badges below title
-    int orbSpacing = 52;
-    int orbY = 455;
-    int orbR = 16;
+    // 3 Elemental Orb Icons below title
+    int orbSpacing = 68;
+    int orbY = 460;
+    float orbR = 24.0f;
 
-    // Quas (Q)
-    DrawCircle(centerX - orbSpacing, orbY, (float)orbR, (Color){0, 210, 255, 220});
-    DrawCircleLines(centerX - orbSpacing, orbY, (float)orbR + 1.0f, WHITE);
-    int qW = MeasureText("Q", 15);
-    DrawText("Q", centerX - orbSpacing - qW / 2, orbY - 8, 15, BLACK);
+    struct {
+        OrbType type;
+        const char *key;
+        Color color;
+    } orbBadges[3] = {
+        {ORB_QUAS, "Q", (Color){0, 210, 255, 255}},
+        {ORB_WEX, "W", (Color){224, 64, 251, 255}},
+        {ORB_EXORT, "E", (Color){255, 87, 34, 255}}
+    };
 
-    // Wex (W)
-    DrawCircle(centerX, orbY, (float)orbR, (Color){224, 64, 251, 220});
-    DrawCircleLines(centerX, orbY, (float)orbR + 1.0f, WHITE);
-    int wW = MeasureText("W", 15);
-    DrawText("W", centerX - wW / 2, orbY - 8, 15, BLACK);
+    for (int i = 0; i < 3; i++) {
+        float posX = (float)(centerX + (i - 1) * orbSpacing);
+        float posY = (float)orbY;
+        Color col = orbBadges[i].color;
 
-    // Exort (E)
-    DrawCircle(centerX + orbSpacing, orbY, (float)orbR, (Color){255, 87, 34, 220});
-    DrawCircleLines(centerX + orbSpacing, orbY, (float)orbR + 1.0f, WHITE);
-    int eW = MeasureText("E", 15);
-    DrawText("E", centerX + orbSpacing - eW / 2, orbY - 8, 15, BLACK);
+        // Outer glow aura
+        DrawCircle((int)posX, (int)posY, orbR + 4.0f, ColorAlpha(col, 0.30f));
+
+        // Circular Orb Texture
+        Texture2D tex = GetCircularOrbTexture(ctx->assets, orbBadges[i].type);
+        if (tex.id > 0) {
+            Rectangle src = {0.0f, 0.0f, (float)tex.width, (float)tex.height};
+            Rectangle dst = {posX, posY, orbR * 2.0f, orbR * 2.0f};
+            Vector2 origin = {orbR, orbR};
+            DrawTexturePro(tex, src, dst, origin, 0.0f, WHITE);
+        } else {
+            DrawCircle((int)posX, (int)posY, orbR, col);
+        }
+
+        // Circular border rings
+        DrawCircleLines((int)posX, (int)posY, orbR, ColorAlpha(WHITE, 0.85f));
+        DrawCircleLines((int)posX, (int)posY, orbR + 1.5f, ColorAlpha(col, 0.8f));
+
+        // Hotkey badge below orb
+        float badgeY = posY + orbR + 2.0f;
+        DrawCircle((int)posX, (int)badgeY, 9.0f, (Color){15, 18, 24, 230});
+        DrawCircleLines((int)posX, (int)badgeY, 9.5f, col);
+        int kW = MeasureText(orbBadges[i].key, 12);
+        DrawText(orbBadges[i].key, (int)posX - kW / 2, (int)badgeY - 6, 12, GOLD);
+    }
 
     // Accent line divider
     DrawLine(centerX - 200, 505, centerX + 200, 505, (Color){50, 55, 70, 255});
