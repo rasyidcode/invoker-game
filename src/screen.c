@@ -13,6 +13,12 @@ void InitGameContext(GameContext *ctx, const GameAssets *assets, AudioManager *a
     LoadSettings(&ctx->settings);
     LoadHighScores(&ctx->highScores);
 
+    SetMasterVolume(ctx->settings.masterVolume);
+    if (ctx->audio) {
+        ctx->audio->sfxVolume = ctx->settings.sfxVolume;
+        ctx->audio->voiceVolume = ctx->settings.voiceVolume;
+    }
+
     ctx->menuPage = MENU_PAGE_MAIN;
     ctx->menuSelected = 0;
     ctx->gameOver = (GameOverModal){0};
