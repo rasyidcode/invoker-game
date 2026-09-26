@@ -43,6 +43,7 @@ The repository includes dedicated domain skills in [`.agents/skills/`](./.agents
 | **`c-game-pools-and-particles`** | [`.agents/skills/c-game-pools-and-particles/SKILL.md`](./.agents/skills/c-game-pools-and-particles/SKILL.md) | Zero-allocation fixed object pools, ring buffers, and particle systems (Quas ice, Wex storm, Exort fire). |
 | **`c-debug-sanitizers`** | [`.agents/skills/c-debug-sanitizers/SKILL.md`](./.agents/skills/c-debug-sanitizers/SKILL.md) | Diagnosing segfaults, memory leaks, buffer overflows, compiler warnings, or runtime bugs using ASan, Valgrind, or GDB. |
 | **`c-mentor-guide`** | [`.agents/skills/c-mentor-guide/SKILL.md`](./.agents/skills/c-mentor-guide/SKILL.md) | Pedagogical guidance, reviewing C memory and pointers, explaining Raylib structs, or guiding architectural choices. |
+| **`raylib-web-assembly`** | [`.agents/skills/raylib-web-assembly/SKILL.md`](./.agents/skills/raylib-web-assembly/SKILL.md) | Compiling Raylib C games to WebAssembly (HTML5) via Emscripten, main loop adaptation, and asset preloading. |
 
 ---
 
