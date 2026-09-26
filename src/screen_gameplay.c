@@ -97,7 +97,7 @@ static void DrawTargetSpellCard(SpellId targetSpell, const QuizFeedback *feedbac
     int cardW = 500;
     int cardH = 265;
     int cardX = centerX - (cardW / 2);
-    int cardY = 210;
+    int cardY = 225;
 
     float fbAlpha = (feedback && feedback->timer > 0.0f)
                         ? (feedback->timer / feedback->maxDuration)
@@ -171,49 +171,53 @@ static void DrawOrbs(const OrbBuffer *buffer, const GameAssets *assets, const Or
     if (!buffer) return;
 
     int centerX = VIRTUAL_WIDTH / 2;
-    int baseY = 550;
+    int baseY = 620;
     int orbSpacing = 153;
     float baseRadius = 64.0f;
     float time = (float)GetTime();
 
     for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
         float posX = (float)(centerX + (i - 1) * orbSpacing);
-        float bobOffset = sinf(time * 3.0f + (float)i * 1.5f) * 6.0f;
-        float posY = (float)baseY + bobOffset;
+        bool hasOrb = (i < buffer->count);
 
-        float scale = anim ? anim->scale[i] : 1.0f;
-        float radius = baseRadius * scale;
-        float flash = anim ? anim->flashAlpha[i] : 0.0f;
+        // Subtle floating bobbing motion like Dota 2 hovering orbs
+        float bobOffset = hasOrb ? sinf(time * 3.5f + (float)i * 2.0f) * 6.0f : 0.0f;
+        float currentY = (float)baseY + bobOffset;
 
-        if (i < buffer->count) {
+        float currentScale = anim ? anim->scale[i] : 1.0f;
+        float currentRadius = baseRadius * currentScale;
+
+        if (hasOrb) {
             OrbType orb = buffer->orbs[i];
             Color baseColor = GetOrbColor(orb);
             Texture2D tex = GetCircularOrbTexture(assets, orb);
 
-            if (flash > 0.01f) {
-                DrawCircle((int)posX, (int)posY, radius * 1.25f,
-                           ColorAlpha(baseColor, flash * 0.45f));
-            }
-
-            DrawCircle((int)posX, (int)posY, radius * 1.10f,
-                       ColorAlpha(baseColor, 0.22f));
-
             if (tex.id > 0) {
-                Rectangle sourceRec = {0.0f, 0.0f, (float)tex.width, (float)tex.height};
-                Rectangle destRec = {posX, posY, radius * 2.0f, radius * 2.0f};
-                Vector2 origin = {radius, radius};
-                DrawTexturePro(tex, sourceRec, destRec, origin, 0.0f, WHITE);
-            } else {
-                DrawCircle((int)posX, (int)posY, radius, baseColor);
-            }
+                // 1. Draw scaled circular texture centered at (posX, currentY)
+                Rectangle src = {0.0f, 0.0f, (float)tex.width, (float)tex.height};
+                Rectangle dest = {posX - currentRadius, currentY - currentRadius,
+                                  currentRadius * 2.0f, currentRadius * 2.0f};
+                DrawTexturePro(tex, src, dest, (Vector2){0, 0}, 0.0f, WHITE);
 
-            DrawCircleLines((int)posX, (int)posY, radius, ColorAlpha(baseColor, 0.85f));
-            DrawCircleLines((int)posX, (int)posY, radius + 2.0f,
-                            ColorAlpha(WHITE, 0.35f + flash * 0.65f));
+                // 2. Layered glowing elemental rims
+                DrawCircleLines((int)posX, (int)currentY, currentRadius + 1.0f, baseColor);
+                DrawCircleLines((int)posX, (int)currentY, currentRadius + 2.5f, ColorAlpha(baseColor, 0.65f));
+                DrawCircleLines((int)posX, (int)currentY, currentRadius + 4.5f, ColorAlpha(baseColor, 0.30f));
+
+                // 3. Entry flash / shockwave ripple on new orb
+                if (anim && anim->flashAlpha[i] > 0.0f) {
+                    float expand = (1.0f - anim->flashAlpha[i]) * 24.0f;
+                    DrawCircleLines((int)posX, (int)currentY, currentRadius + expand,
+                                    ColorAlpha(WHITE, anim->flashAlpha[i] * 0.8f));
+                }
+            } else {
+                DrawCircle((int)posX, (int)currentY, currentRadius, baseColor);
+            }
         } else {
-            DrawCircle((int)posX, (int)posY, radius, (Color){20, 22, 28, 255});
-            DrawCircleLines((int)posX, (int)posY, radius, (Color){50, 55, 68, 255});
-            DrawCircleLines((int)posX, (int)posY, radius * 0.55f, (Color){35, 38, 48, 255});
+            // Inactive / empty socket
+            DrawCircle((int)posX, (int)currentY, baseRadius, (Color){20, 22, 28, 255});
+            DrawCircleLines((int)posX, (int)currentY, baseRadius, (Color){50, 55, 68, 255});
+            DrawCircleLines((int)posX, (int)currentY, baseRadius * 0.55f, (Color){35, 38, 48, 255});
         }
     }
 }
@@ -223,7 +227,7 @@ static void DrawAbilitySlots(const SpellSlots *spellSlots, const GameAssets *ass
     int gap = 10;
     int totalWidth = (slotSize * 6) + (gap * 5);
     int startX = (VIRTUAL_WIDTH - totalWidth) / 2;
-    int posY = 730;
+    int posY = 770;
 
     typedef struct {
         const char *name;
@@ -463,7 +467,7 @@ void DrawGameplayScreen(const GameContext *ctx) {
     DrawAbilitySlots(&ctx->spellSlots, ctx->assets, &ctx->invokePulse);
 
     int feedW = (100 * 6) + (10 * 5); // 650px
-    int feedY = 855;
-    int feedH = (VIRTUAL_HEIGHT - 25) - feedY; // 400px bottom coverage
+    int feedY = 895;
+    int feedH = (VIRTUAL_HEIGHT - 25) - feedY; // 360px bottom coverage
     DrawActionLog(&ctx->actionLog, centerX, feedY, feedW, feedH);
 }
