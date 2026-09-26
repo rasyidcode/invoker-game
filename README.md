@@ -27,34 +27,36 @@ The Invoker Game challenges players to rapidly manipulate three elemental reagen
    - **Slot 1 (Primary, key `D`)**
    - **Slot 2 (Secondary, key `F`)**
    - Invoking a new spell shifts the previous Slot 1 spell into Slot 2.
-4. **Free-Cast vs. Match Simulation Rules**:
-   - **Free-Cast (Default)**: Speed Trainer, Arcane Surge, and Sandbox practice default to **unlimited mana and 0s cooldowns** so you can drill muscle memory at maximum APM without artificial locks.
-   - **Realism Rules**: Active in **Match Simulation** mode (and toggleable in Sandbox), enforcing authentic Dota 2 mana costs, mana regeneration, and per-spell cooldowns.
-
 ### Spell Reference Table
 
-| Spell Name | Recipe | Q | W | E | Key | Mana | Cooldown | Effect |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Cold Snap** | `Q Q Q` | 3 | 0 | 0 | `D` / `F` | 100 | 20.0s | Freezes target repeatedly upon taking damage |
-| **Ghost Walk** | `Q Q W` | 2 | 1 | 0 | `D` / `F` | 200 | 35.0s | Invisibility with aura slowing nearby enemies |
-| **Ice Wall** | `Q Q E` | 2 | 0 | 1 | `D` / `F` | 175 | 25.0s | Impassable wall of ice causing heavy slows |
-| **EMP** | `W W W` | 0 | 3 | 0 | `D` / `F` | 125 | 30.0s | Charges an electromagnetic pulse burning mana |
-| **Tornado** | `W W Q` | 1 | 2 | 0 | `D` / `F` | 150 | 30.0s | High-speed cyclone lifting enemies into the air |
-| **Alacrity** | `W W E` | 0 | 2 | 1 | `D` / `F` | 60 | 17.0s | Massive attack speed and bonus attack damage |
-| **Sun Strike** | `E E E` | 0 | 0 | 3 | `D` / `F` | 175 | 25.0s | Delayed global beam of pure solar devastation |
-| **Forge Spirit** | `E E Q` | 1 | 0 | 2 | `D` / `F` | 75 | 30.0s | Summons elemental spirits with armor melting attacks |
-| **Chaos Meteor** | `E E W` | 0 | 1 | 2 | `D` / `F` | 200 | 40.0s | Flaming meteor rolling forward leaving molten trail |
-| **Deafening Blast** | `Q W E` | 1 | 1 | 1 | `D` / `F` | 200 | 40.0s | Sonic wave knocking back, damaging, and disarming |
+| Spell Name | Recipe | Q | W | E | Key | Effect |
+| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| **Cold Snap** | `Q Q Q` | 3 | 0 | 0 | `D` / `F` | Freezes target repeatedly upon taking damage |
+| **Ghost Walk** | `Q Q W` | 2 | 1 | 0 | `D` / `F` | Invisibility with aura slowing nearby enemies |
+| **Ice Wall** | `Q Q E` | 2 | 0 | 1 | `D` / `F` | Impassable wall of ice causing heavy slows |
+| **EMP** | `W W W` | 0 | 3 | 0 | `D` / `F` | Charges an electromagnetic pulse burning mana |
+| **Tornado** | `W W Q` | 1 | 2 | 0 | `D` / `F` | High-speed cyclone lifting enemies into the air |
+| **Alacrity** | `W W E` | 0 | 2 | 1 | `D` / `F` | Massive attack speed and bonus attack damage |
+| **Sun Strike** | `E E E` | 0 | 0 | 3 | `D` / `F` | Delayed global beam of pure solar devastation |
+| **Forge Spirit** | `E E Q` | 1 | 0 | 2 | `D` / `F` | Summons elemental spirits with armor melting attacks |
+| **Chaos Meteor** | `E E W` | 0 | 1 | 2 | `D` / `F` | Flaming meteor rolling forward leaving molten trail |
+| **Deafening Blast** | `Q W E` | 1 | 1 | 1 | `D` / `F` | Sonic wave knocking back, damaging, and disarming |
 
 ---
 
 ## Game Modes
 
-* **Practice / Sandbox**: Freeform spell invocation and casting with action logging. Includes an on-screen toggle between **Free-Cast** and **Dota Realism**.
-* **Speed Trainer / Time Attack (Free-Cast)**: Race against a 30- or 60-second timer to invoke randomly prompted target spells with scoring multipliers and APM tracking.
-* **Arcane Surge / Momentum Mode (Free-Cast)**: High-pressure challenge to fill a 10-point surge meter before continuous drain empties it.
-* **Quiz / Memorization**: Recipe practice mode to learn combinations without time pressure.
-* **Match Simulation / Combo Trial (Realism Rules)**: Authentic Dota 2 tactical environment requiring mana budget management, cooldown tracking, and execution of multi-spell combo chains.
+* **Practice / Sandbox**: Freeform spell invocation and casting with on-screen visual feedback and action logging.
+* **Speed Trainer / Time Attack**: The core challenge! Race against a 30- or 60-second timer to invoke randomly prompted target spells with combo multipliers and APM tracking.
+* **Quiz / Memorization**: Untimed recipe practice mode to build initial muscle memory.
+
+---
+
+## Sister Projects
+
+Extended mechanics and alternate playstyles are maintained in dedicated repositories:
+* **[Invoker: Arcane Surge](../invoker-surge)**: High-speed arcade game featuring momentum decay bars and frenzy spell-cycling.
+* **[Invoker: Match Simulator](../invoker-sim)**: Authentic tactical Dota 2 sandbox with strict mana pools, cooldown rotations, and combo trials.
 
 ---
 

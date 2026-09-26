@@ -2,6 +2,7 @@
 #include <orb.h>
 #include <raylib.h>
 #include <spell.h>
+#include <stdio.h>
 
 // Screen configuration
 #define VIRTUAL_WIDTH 720
@@ -12,13 +13,21 @@
 
 #define TARGET_FPS 60
 
-static void DrawTitle() {
+// Feedback state for quiz guesses
+typedef struct {
+    char text[32];
+    Color color;
+    float timer;
+    float maxDuration;
+} QuizFeedback;
+
+static void DrawTitle(void) {
     int centerX = VIRTUAL_WIDTH / 2;
 
     const int gameTitleFs = 48;
     const char *gameTitle = "DOTA 2 - INVOKER GAME";
     const int gameTitleW = MeasureText(gameTitle, gameTitleFs);
-    DrawText(gameTitle, VIRTUAL_WIDTH / 2 - gameTitleW / 2, 100, gameTitleFs,
+    DrawText(gameTitle, centerX - gameTitleW / 2, 100, gameTitleFs,
              RAYWHITE);
 
     const int instructionTextFs = 18;
@@ -26,26 +35,51 @@ static void DrawTitle() {
         "Press Q (Quas), W (Wex), E (Exort) to fill orb slots";
     const int instructionTextW =
         MeasureText(instructionText, instructionTextFs);
-    DrawText(instructionText, (VIRTUAL_WIDTH / 2 - instructionTextW / 2), 160,
+    DrawText(instructionText, centerX - instructionTextW / 2, 160,
              18, LIGHTGRAY);
 }
 
-static void DrawTargetSpellCard(SpellId targetSpell, bool showHelper) {
+static void DrawScoreBar(int score, int streak) {
+    int centerX = VIRTUAL_WIDTH / 2;
+    int cardW = 500;
+    int cardX = centerX - (cardW / 2);
+    int barY = 226;
+
+    // Score on the left
+    const char *scoreText = TextFormat("SCORE: %d", score);
+    DrawText(scoreText, cardX, barY, 20, GOLD);
+
+    // Streak on the right
+    const char *streakText = TextFormat("STREAK: %d", streak);
+    int streakW = MeasureText(streakText, 20);
+    Color streakColor =
+        (streak > 0) ? (Color){80, 240, 120, 255} : (Color){140, 145, 155, 255};
+    DrawText(streakText, cardX + cardW - streakW, barY, 20, streakColor);
+}
+
+static void DrawTargetSpellCard(SpellId targetSpell, const QuizFeedback *feedback) {
     const SpellInfo *info = GetSpellInfo(targetSpell);
     if (!info)
         return;
 
     int centerX = VIRTUAL_WIDTH / 2;
     int cardW = 500;
-    int cardH = 260;
+    int cardH = 265;
     int cardX = centerX - (cardW / 2);
-    int cardY = 240;
+    int cardY = 265;
+
+    float fbAlpha = (feedback && feedback->timer > 0.0f)
+                        ? (feedback->timer / feedback->maxDuration)
+                        : 0.0f;
 
     // Card bg & border
     DrawRectangle(cardX, cardY, cardW, cardH, (Color){22, 25, 32, 255});
-    DrawRectangleLines(cardX, cardY, cardW, cardH, (Color){45, 50, 62, 255});
+    Color cardBorder = (fbAlpha > 0.0f)
+                           ? ColorAlpha(feedback->color, fbAlpha * 0.7f)
+                           : (Color){45, 50, 62, 255};
+    DrawRectangleLines(cardX, cardY, cardW, cardH, cardBorder);
 
-    // Target Spell
+    // Target Spell Header
     const char *header = "TARGET SPELL";
     int headerFs = 16;
     DrawText(header, centerX - MeasureText(header, headerFs) / 2, cardY + 16,
@@ -57,45 +91,28 @@ static void DrawTargetSpellCard(SpellId targetSpell, bool showHelper) {
     DrawText(info->name, centerX - (nameW / 2), cardY + 44, nameFs,
              info->color);
 
-    // Center Spell Preview Box
-    int boxSize = 80;
+    // Center Spell Preview Box (150x150)
+    int boxSize = 150;
     int boxX = centerX - (boxSize / 2);
-    int boxY = cardY + 86;
+    int boxY = cardY + 85;
     DrawRectangle(boxX, boxY, boxSize, boxSize, (Color){15, 17, 22, 255});
-    DrawRectangleLines(boxX, boxY, boxSize, boxSize, info->color);
-    DrawRectangle(boxX, boxY + boxSize - 6, boxSize, 6, info->color);
 
-    if (showHelper) {
-        // Recipe helper
-        int pipRadius = 10;
-        int pipSpacing = 28;
-        int totalPipsWidth = (3 * (pipRadius * 2)) + (2 * 8);
-        int pipStartX = centerX - (totalPipsWidth / 2) + pipRadius;
-        int pipY = cardY + 200;
+    Color boxBorder = (fbAlpha > 0.0f) ? feedback->color : info->color;
+    DrawRectangleLines(boxX, boxY, boxSize, boxSize, boxBorder);
+    DrawRectangle(boxX, boxY + boxSize - 6, boxSize, 6, boxBorder);
 
-        int pipIndex = 0;
-
-        // Quas pips
-        for (int i = 0; i < info->req_quas; i++) {
-            DrawCircle(pipStartX + (pipIndex++ * pipSpacing), pipY, pipRadius,
-                       (Color){0, 210, 255, 255});
-        }
-
-        // Wex pips
-        for (int i = 0; i < info->req_wex; i++) {
-            DrawCircle(pipStartX + (pipIndex++ * pipSpacing), pipY, pipRadius,
-                       (Color){224, 64, 251, 255});
-        }
-
-        // Exort pips
-        for (int i = 0; i < info->req_exort; i++) {
-            DrawCircle(pipStartX + (pipIndex++ * pipSpacing), pipY, pipRadius,
-                       (Color){255, 87, 34, 255});
-        }
-
-        const char *recipeHint = "Recipe";
-        DrawText(recipeHint, centerX - (MeasureText(recipeHint, 12) / 2),
-                 pipY + 16, 12, DARKGRAY);
+    if (fbAlpha > 0.0f) {
+        int fbFs = 30;
+        int fbW = MeasureText(feedback->text, fbFs);
+        Color fbColor = ColorAlpha(feedback->color, fbAlpha);
+        int floatY = (int)((1.0f - fbAlpha) * 12.0f);
+        DrawText(feedback->text, centerX - (fbW / 2),
+                 boxY + (boxSize / 2) - (fbFs / 2) - floatY, fbFs, fbColor);
+    } else {
+        int qFs = 64;
+        int qW = MeasureText("?", qFs);
+        DrawText("?", centerX - (qW / 2), boxY + (boxSize / 2) - (qFs / 2) - 4,
+                 qFs, DARKGRAY);
     }
 }
 
@@ -219,9 +236,20 @@ int main(void) {
 
     SpellId targetSpell = GetRandomValue(0, SPELL_COUNT - 1);
 
+    int streak = 0, score = 0;
+    QuizFeedback feedback = {0};
+
     // clang-format off
     while (!WindowShouldClose()) {
         // Update
+        float dt = GetFrameTime();
+        if (feedback.timer > 0.0f) {
+            feedback.timer -= dt;
+            if (feedback.timer < 0.0f) {
+                feedback.timer = 0.0f;
+            }
+        }
+
         if (IsKeyPressed(KEY_Q)) {
             PushOrbBuffer(&orbBuffer, ORB_QUAS);
         }
@@ -232,7 +260,41 @@ int main(void) {
             PushOrbBuffer(&orbBuffer, ORB_EXORT);
         }
         if (IsKeyPressed(KEY_R)) {
-            InvokeSpell(&spellSlots, &orbBuffer);
+            if (orbBuffer.count < MAX_ACTIVE_ORBS) {
+                feedback.timer = 0.85f;
+                feedback.maxDuration = 0.85f;
+                feedback.color = (Color){255, 180, 50, 255};
+                snprintf(feedback.text, sizeof(feedback.text), "NEED 3 ORBS");
+            } else {
+                SpellId invokedSpell = ResolveSpell(&orbBuffer);
+
+                if (invokedSpell == targetSpell) {
+                    // CORRECT
+                    streak++;
+                    int points = 100 * streak;
+                    score += points;
+
+                    feedback.timer = 0.85f;
+                    feedback.maxDuration = 0.85f;
+                    feedback.color = (Color){50, 240, 100, 255};
+                    snprintf(feedback.text, sizeof(feedback.text), "+%d", points);
+
+                    SpellId nextSpell;
+                    do {
+                        nextSpell = (SpellId)GetRandomValue(0, SPELL_COUNT - 1);
+                    } while (nextSpell == targetSpell);
+                    targetSpell = nextSpell;
+                } else {
+                    // MISS
+                    streak = 0;
+                    feedback.timer = 0.85f;
+                    feedback.maxDuration = 0.85f;
+                    feedback.color = (Color){255, 65, 65, 255};
+                    snprintf(feedback.text, sizeof(feedback.text), "MISS!");
+                }
+
+                InvokeSpell(&spellSlots, &orbBuffer);
+            }
         }
 
         // Virtual Draw
@@ -240,7 +302,8 @@ int main(void) {
             ClearBackground(bgColor);
 
             DrawTitle();
-            DrawTargetSpellCard(targetSpell, true);
+            DrawScoreBar(score, streak);
+            DrawTargetSpellCard(targetSpell, &feedback);
             DrawOrbs(&orbBuffer);
             DrawAbilitySlots(&spellSlots);
         EndTextureMode();

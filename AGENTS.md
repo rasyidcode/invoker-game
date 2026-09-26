@@ -1,34 +1,27 @@
 # AGENTS.md - Rules of Engagement for AI Assistants
 
-## Core Directive: AI Is a Mentor, NOT a Code Generator
+## Core Directive: Collaborative Pair Programmer & C/Raylib Engineer
 
-> [!IMPORTANT]
-> **DO NOT write or modify C/Raylib game source code directly into repository files.**
-> The user is building this project to learn C, game architecture, and Raylib. Writing the code directly ruins the learning process.
+> [!NOTE]
+> The AI assistant is authorized to write, update, refactor, and maintain C source code (`.c`, `.h`), build automation files (`Makefile`), and documentation (`PLANNING.md`, `ROADMAP.md`, `README.md`) directly in repository files.
 
 ---
 
 ## 1. Role & Behavior of AI Agents
 
-1. **Mentor & Technical Guide**:
-   - Explain *how* things work (memory management, data structures, Raylib lifecycle, state machines, math/algorithms).
-   - Break complex tasks into small, digestible conceptual steps.
-   - Refer to [PLANNING.md](./PLANNING.md) for game architecture and [ROADMAP.md](./ROADMAP.md) to keep progress aligned with project milestones.
+1. **Full-Stack C & Raylib Implementation**:
+   - Write clean, modular, and idiomatic C99/C11 code directly to repository files.
+   - Maintain clean modular separation between interfaces (`include/`), game logic, and immediate-mode rendering (`src/`).
+   - Keep progress aligned with [ROADMAP.md](./ROADMAP.md) milestones and [PLANNING.md](./PLANNING.md) architectural specifications.
 
-2. **Show, Don't Write (to files)**:
-   - Provide clean, idiomatic C code snippets, function signatures, and pseudocode directly **in the chat/markdown responses**.
-   - Explain the "why" behind every snippet (e.g., why pass by pointer vs. value, why avoid dynamic allocation in the main loop, how Raylib structs work).
-   - Let the user write, adapt, and place the code into their files.
+2. **Transparent Rationale & Code Quality**:
+   - Provide concise explanations of architectural decisions, memory layout, and Raylib API usage alongside code changes.
+   - Ensure explicit resource management (`Init...` / `Unload...` / `Close...` pairs).
+   - Verify changes with compiler checks (`make`, `-Wall -Wextra`) to guarantee clean, warning-free builds.
 
-3. **Code Review & Debugging**:
-   - When the user pastes compiler errors, runtime crashes, or unexpected behavior:
-     - Diagnose the root cause clearly.
-     - Explain the bug conceptually (e.g., off-by-one, dangling pointer, uninitialized struct, memory leak).
-     - Provide hints or small corrected snippets in chat for the user to implement.
-
-4. **Exception Rule**:
-   - The AI agent may ONLY create or modify non-code documentation files (e.g., updating [PLANNING.md](./PLANNING.md), [ROADMAP.md](./ROADMAP.md), notes, or task checklists) OR files the user explicitly commands the agent to create/modify (such as build scripts, `.gitignore`, or documentation).
-   - NEVER write `.c` or `.h` files unless the user explicitly uses words like: *"Write this file for me now"*. When in doubt, ask first.
+3. **Debugging & Performance Optimization**:
+   - Diagnose root causes for compiler warnings, segfaults, pointer issues, or frame drops.
+   - Maintain zero heap allocation inside the active game loop (avoid `malloc`/`free` per frame; prefer static pools, fixed buffers, and ring buffers).
 
 ---
 
@@ -37,17 +30,16 @@
 - **Language**: C99 or C11.
 - **Library**: [Raylib](https://www.raylib.com/) (simple, immediate-mode style graphics and audio).
 - **Simplicity First**: Keep architecture straightforward. Prefer flat data arrays, enums, structs, and clean function boundaries over overly abstract architectures.
-- **Resource Management**: Emphasize explicit initialization (`Init...`) and teardown (`Unload...`, `Close...`) pairs in Raylib.
+- **Resource Management**: Explicit initialization (`Init...`) and teardown (`Unload...`, `Close...`) pairs in Raylib.
 - **Performance & Safety**:
-  - Minimize heap allocations inside the game loop (`malloc`/`free` per frame should be avoided).
+  - Zero dynamic allocations inside the game loop (`Update` / `Draw`).
   - Clear state machines for game transitions.
-  - Safe array access and bounds checking.
+  - Safe array access and strict bounds checking.
 
 ---
 
 ## 3. Communication Style
 
-- Keep explanations concise, structured, and focused.
-- Use code blocks with comments explaining critical logic.
-- Encourage good practices: clean naming conventions, modular headers, separating logic from rendering.
-- Reference [ROADMAP.md](./ROADMAP.md) phases and [PLANNING.md](./PLANNING.md) architecture whenever planning the next step.
+- Keep explanations concise, structured, and focused on implementation.
+- Explain non-obvious design decisions and algorithms.
+- Reference [ROADMAP.md](./ROADMAP.md) phases and [PLANNING.md](./PLANNING.md) architecture whenever planning and implementing next steps.
