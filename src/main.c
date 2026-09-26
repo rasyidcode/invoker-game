@@ -438,7 +438,6 @@ int main(void) {
                     snprintf(feedback.text, sizeof(feedback.text), "+%d", points);
 
                     PlayQuizFeedbackSound(&audio, true);
-                    PlaySpellSound(&audio, invokedSpell);
 
                     // Streak milestone voice lines
                     if (streak == 5) {
