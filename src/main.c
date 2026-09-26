@@ -12,12 +12,125 @@
 
 #define TARGET_FPS 60
 
+static void DrawTitle() {
+    int centerX = VIRTUAL_WIDTH / 2;
+
+    const int gameTitleFs = 48;
+    const char *gameTitle = "DOTA 2 - INVOKER GAME";
+    const int gameTitleW = MeasureText(gameTitle, gameTitleFs);
+    DrawText(gameTitle, VIRTUAL_WIDTH / 2 - gameTitleW / 2, 100, gameTitleFs,
+             RAYWHITE);
+
+    const int instructionTextFs = 18;
+    const char *instructionText =
+        "Press Q (Quas), W (Wex), E (Exort) to fill orb slots";
+    const int instructionTextW =
+        MeasureText(instructionText, instructionTextFs);
+    DrawText(instructionText, (VIRTUAL_WIDTH / 2 - instructionTextW / 2), 160,
+             18, LIGHTGRAY);
+}
+
+static void DrawTargetSpellCard(SpellId targetSpell, bool showHelper) {
+    const SpellInfo *info = GetSpellInfo(targetSpell);
+    if (!info)
+        return;
+
+    int centerX = VIRTUAL_WIDTH / 2;
+    int cardW = 500;
+    int cardH = 260;
+    int cardX = centerX - (cardW / 2);
+    int cardY = 240;
+
+    // Card bg & border
+    DrawRectangle(cardX, cardY, cardW, cardH, (Color){22, 25, 32, 255});
+    DrawRectangleLines(cardX, cardY, cardW, cardH, (Color){45, 50, 62, 255});
+
+    // Target Spell
+    const char *header = "TARGET SPELL";
+    int headerFs = 16;
+    DrawText(header, centerX - MeasureText(header, headerFs) / 2, cardY + 16,
+             headerFs, GOLD);
+
+    // Spell Name
+    int nameFs = 28;
+    int nameW = MeasureText(info->name, nameFs);
+    DrawText(info->name, centerX - (nameW / 2), cardY + 44, nameFs,
+             info->color);
+
+    // Center Spell Preview Box
+    int boxSize = 80;
+    int boxX = centerX - (boxSize / 2);
+    int boxY = cardY + 86;
+    DrawRectangle(boxX, boxY, boxSize, boxSize, (Color){15, 17, 22, 255});
+    DrawRectangleLines(boxX, boxY, boxSize, boxSize, info->color);
+    DrawRectangle(boxX, boxY + boxSize - 6, boxSize, 6, info->color);
+
+    if (showHelper) {
+        // Recipe helper
+        int pipRadius = 10;
+        int pipSpacing = 28;
+        int totalPipsWidth = (3 * (pipRadius * 2)) + (2 * 8);
+        int pipStartX = centerX - (totalPipsWidth / 2) + pipRadius;
+        int pipY = cardY + 200;
+
+        int pipIndex = 0;
+
+        // Quas pips
+        for (int i = 0; i < info->req_quas; i++) {
+            DrawCircle(pipStartX + (pipIndex++ * pipSpacing), pipY, pipRadius,
+                       (Color){0, 210, 255, 255});
+        }
+
+        // Wex pips
+        for (int i = 0; i < info->req_wex; i++) {
+            DrawCircle(pipStartX + (pipIndex++ * pipSpacing), pipY, pipRadius,
+                       (Color){224, 64, 251, 255});
+        }
+
+        // Exort pips
+        for (int i = 0; i < info->req_exort; i++) {
+            DrawCircle(pipStartX + (pipIndex++ * pipSpacing), pipY, pipRadius,
+                       (Color){255, 87, 34, 255});
+        }
+
+        const char *recipeHint = "Recipe";
+        DrawText(recipeHint, centerX - (MeasureText(recipeHint, 12) / 2),
+                 pipY + 16, 12, DARKGRAY);
+    }
+}
+
+// Helper to draw the orbs
+static void DrawOrbs(OrbBuffer *orbBuffer) {
+    int centerX = VIRTUAL_WIDTH / 2;
+    int startY = VIRTUAL_HEIGHT / 2;
+    int orbRadius = 64;
+    int orbSpacing = orbRadius * 2 + 25;
+
+    for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
+        int posX = centerX + (i - 1) * orbSpacing;
+        Color orbColor = GetOrbColor(orbBuffer->orbs[i]);
+
+        // Outer ring
+        DrawCircle(posX, startY, orbRadius + 4, (Color){30, 34, 42, 255});
+        // Inner orb
+        DrawCircle(posX, startY, orbRadius, orbColor);
+
+        // Orb element label
+        const char *label = GetOrbName(orbBuffer->orbs[i]);
+        int textWidth = MeasureText(label, 18);
+        DrawText(label, posX - (textWidth / 2), startY + orbRadius + 12, 18,
+                 RAYWHITE);
+    }
+}
+
 // Helper to draw an invoked spell slot box
-static void DrawAbilitySlots(int centerX, SpellSlots *spellSlots) {
+static void DrawAbilitySlots(SpellSlots *spellSlots) {
+    int centerX = VIRTUAL_WIDTH / 2;
+
     int slotCount = 6;
     int slotSize = 100;
     int slotGap = 10;
-    int posY = 640;
+    int posY = VIRTUAL_HEIGHT / 2 + 150;
 
     // Fetch info for active invoked spells
     const SpellInfo *info1 = GetSpellInfo(spellSlots->slot1);
@@ -71,7 +184,8 @@ static void DrawAbilitySlots(int centerX, SpellSlots *spellSlots) {
         }
 
         // Hotkey badge bottom-right
-        DrawText(slots[i].hotkey, posX + slotSize - 18, posY + slotSize - 26, 16, GOLD);
+        DrawText(slots[i].hotkey, posX + slotSize - 18, posY + slotSize - 26,
+                 16, GOLD);
 
         // Ability name (font size 12 fits longer names like "Deafining
         // Blast")
@@ -103,6 +217,8 @@ int main(void) {
     SpellSlots spellSlots;
     InitSpellSlots(&spellSlots);
 
+    SpellId targetSpell = GetRandomValue(0, SPELL_COUNT - 1);
+
     // clang-format off
     while (!WindowShouldClose()) {
         // Update
@@ -123,38 +239,10 @@ int main(void) {
         BeginTextureMode(target);
             ClearBackground(bgColor);
 
-            int centerX = VIRTUAL_WIDTH / 2;
-
-            const int gameTitleFs = 48;
-            const char *gameTitle = "DOTA 2 - INVOKER GAME";
-            const int gameTitleW = MeasureText(gameTitle, gameTitleFs);
-            DrawText(gameTitle, VIRTUAL_WIDTH / 2 - gameTitleW / 2, 100, gameTitleFs, RAYWHITE);
-
-            const int instructionTextFs = 18;
-            const char *instructionText = "Press Q (Quas), W (Wex), E (Exort) to fill orb slots";
-            const int instructionTextW = MeasureText(instructionText, instructionTextFs);
-            DrawText(instructionText, (VIRTUAL_WIDTH / 2 - instructionTextW / 2), 160, 18, LIGHTGRAY);
-
-            int startY = VIRTUAL_WIDTH / 2;
-            int orbRadius = 64;
-            int orbSpacing = orbRadius * 2 + 25;
-
-            for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
-                int posX = centerX + (i - 1) * orbSpacing;
-                Color orbColor = GetOrbColor(orbBuffer.orbs[i]);
-
-                // Outer ring
-                DrawCircle(posX, startY, orbRadius + 4, (Color){30, 34, 42, 255});
-                // Inner orb
-                DrawCircle(posX, startY, orbRadius, orbColor);
-
-                // Orb element label
-                const char *label = GetOrbName(orbBuffer.orbs[i]);
-                int textWidth = MeasureText(label, 18);
-                DrawText(label, posX - (textWidth / 2), startY + orbRadius + 12, 18, RAYWHITE);
-            }
-
-            DrawAbilitySlots(centerX, &spellSlots);
+            DrawTitle();
+            DrawTargetSpellCard(targetSpell, true);
+            DrawOrbs(&orbBuffer);
+            DrawAbilitySlots(&spellSlots);
         EndTextureMode();
 
         // Draw
