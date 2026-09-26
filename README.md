@@ -53,6 +53,7 @@ The Invoker Game challenges players to rapidly manipulate three elemental reagen
 * **Interactive Spell Book**: Catalog of all 10 spells with animated recipe badges and click-to-audition Dota 2 spell audio cues.
 * **Hall of Invocation (High Scores)**: Tracks personal records, highest strikes/streaks, and rank medals saved to `scores.dat`.
 * **Settings & Audio Controls**: In-game configuration screen with sliders and toggles for Master/SFX/Voice/Music volumes and preferences saved to `settings.dat`.
+* **Elemental Particle Effects & Screen Shake**: Zero-allocation fixed particle pool for Quas ice crystals, Wex storm sparks, Exort fire embers, 360° invoke shockwaves, and dynamic camera shake.
 
 ---
 
@@ -146,6 +147,7 @@ invoker-game/
 │   ├── config.h         # Game settings, window dimensions, and persistence
 │   ├── log.h            # On-screen action log and event feed
 │   ├── orb.h            # Orb types, buffer definitions, and FIFO operations
+│   ├── particles.h      # Zero-allocation particle pool and elemental emitters
 │   ├── screen.h         # Screen state machine, transitions, and screen modules
 │   └── spell.h          # 10-spell lookup table, recipe matching, and slot logic
 └── src/
@@ -155,6 +157,7 @@ invoker-game/
     ├── log.c            # Action log FIFO ring buffer and HUD rendering
     ├── main.c           # Entry point and Raylib render loop
     ├── orb.c            # Orb state manipulation and FIFO queue implementation
+    ├── particles.c      # Particle physics integration, rendering, and emitters
     ├── screen.c         # Screen state machine and transition handling
     ├── screen_gameplay.c# Gameplay screen (Endless, Time Attack & Practice)
     ├── screen_logo.c    # Animated Raylib splash screen

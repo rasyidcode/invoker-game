@@ -140,7 +140,7 @@ flowchart TD
   - 360-degree radial ring bursts on spell invocation (`R`) and cast keys (`D` & `F`).
   - Celebratory spell success bursts over target spell card on correct invocation.
   - Dynamic screen shake on heavy spells and misses, configurable via Settings toggle.
-- [ ] Release v1.0!
+- [x] Release v1.0!
 
 ### Phase 9: WebAssembly & HTML5 Export (Emscripten)
 - [ ] Configure Emscripten build pipeline (`emcc`) in `Makefile` (e.g. `make web` target).
