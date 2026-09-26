@@ -12,6 +12,7 @@
 int main(void) {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_HIGHDPI);
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Dota 2 - Invoker Game");
+    SetExitKey(KEY_NULL); // Prevent ESC from closing the game (used for in-game navigation)
 
     SetWindowMinSize(360, 640);
     SetTargetFPS(TARGET_FPS);
