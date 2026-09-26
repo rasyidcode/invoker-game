@@ -14,6 +14,18 @@ static const char *SPELL_ICON_FILES[SPELL_COUNT] = {
     [SPELL_DEAFENING_BLAST] = "assets/icons/deafening_blast.png",
 };
 
+// Static mapping of Dota 2 rank IDs to filenames
+static const char *RANK_ICON_FILES[DOTA_RANK_COUNT] = {
+    [DOTA_RANK_HERALD]   = "assets/icons/ranks/herald.png",
+    [DOTA_RANK_GUARDIAN] = "assets/icons/ranks/guardian.png",
+    [DOTA_RANK_CRUSADER] = "assets/icons/ranks/crusader.png",
+    [DOTA_RANK_ARCHON]   = "assets/icons/ranks/archon.png",
+    [DOTA_RANK_LEGEND]   = "assets/icons/ranks/legend.png",
+    [DOTA_RANK_ANCIENT]  = "assets/icons/ranks/ancient.png",
+    [DOTA_RANK_DIVINE]   = "assets/icons/ranks/divine.png",
+    [DOTA_RANK_IMMORTAL] = "assets/icons/ranks/immortal.png",
+};
+
 static void LoadTextureSafe(Texture2D *tex, const char *filePath) {
     if (FileExists(filePath)) {
         *tex = LoadTexture(filePath);
@@ -81,6 +93,11 @@ void InitGameAssets(GameAssets *assets) {
     assets->circularOrbIcons[ORB_WEX] = LoadCircularTextureSafe("assets/icons/wex.png");
     assets->circularOrbIcons[ORB_EXORT] = LoadCircularTextureSafe("assets/icons/exort.png");
 
+    // Load official Dota 2 rank badge icons
+    for (int i = 0; i < DOTA_RANK_COUNT; i++) {
+        LoadTextureSafe(&assets->rankIcons[i], RANK_ICON_FILES[i]);
+    }
+
     // Load invoke icon and circular hero portrait
     LoadTextureSafe(&assets->invokeIcon, "assets/icons/invoke.png");
     assets->heroPortrait = LoadCircularTextureSafe("assets/icons/invoker.png");
@@ -106,6 +123,13 @@ void UnloadGameAssets(GameAssets *assets) {
         if (assets->circularOrbIcons[i].id > 0) {
             UnloadTexture(assets->circularOrbIcons[i]);
             assets->circularOrbIcons[i] = (Texture2D){ 0 };
+        }
+    }
+
+    for (int i = 0; i < DOTA_RANK_COUNT; i++) {
+        if (assets->rankIcons[i].id > 0) {
+            UnloadTexture(assets->rankIcons[i]);
+            assets->rankIcons[i] = (Texture2D){ 0 };
         }
     }
 
@@ -141,6 +165,13 @@ Texture2D GetCircularOrbTexture(const GameAssets *assets, OrbType orb) {
         return (Texture2D){ 0 };
     }
     return assets->circularOrbIcons[orb];
+}
+
+Texture2D GetRankTexture(const GameAssets *assets, DotaRank rank) {
+    if (!assets || rank < 0 || rank >= DOTA_RANK_COUNT) {
+        return (Texture2D){ 0 };
+    }
+    return assets->rankIcons[rank];
 }
 
 Texture2D GetInvokeTexture(const GameAssets *assets) {

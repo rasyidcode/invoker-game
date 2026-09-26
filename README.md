@@ -138,6 +138,7 @@ invoker-game/
 ├── README.md            # Project overview and instructions
 ├── assets/              # Authentic Dota 2 spell/orb icons and audio cues
 │   ├── icons/           # Quas, Wex, Exort, Invoke, and 10 spell icons
+│   │   └── ranks/       # 8 official Dota 2 rank badge icons (Herald to Immortal)
 │   └── sounds/          # Orb clicks, invoke sound, spell audio cues, voice lines
 ├── include/
 │   ├── assets.h         # Texture and icon asset manager interface

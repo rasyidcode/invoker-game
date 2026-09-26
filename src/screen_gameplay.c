@@ -433,22 +433,32 @@ static void DrawGameOverModal(const GameContext *ctx, Vector2 mouse) {
     int subW = MeasureText(subMode, subFs);
     DrawText(subMode, centerX - subW / 2, modalY + 74, subFs, (Color){160, 165, 180, 255});
 
-    // Rank Circle & Badge
+    // Rank Badge
     int circleY = modalY + 165;
-    float circleRadius = 52.0f;
-    DrawCircle(centerX, circleY, circleRadius + 8.0f, ColorAlpha(rank.color, 0.25f));
-    DrawCircle(centerX, circleY, circleRadius, (Color){15, 18, 25, 255});
-    DrawCircleLines(centerX, circleY, circleRadius, rank.color);
-    DrawCircleLines(centerX, circleY, circleRadius - 2.0f, ColorAlpha(GOLD, 0.6f));
+    float badgeSize = 124.0f;
 
-    // Rank Star/Icon
-    DrawText("★", centerX - MeasureText("★", 38) / 2, circleY - 22, 38, rank.color);
+    // Glowing aura behind badge
+    DrawCircle(centerX, circleY, badgeSize * 0.5f + 10.0f, ColorAlpha(rank.color, 0.22f));
+
+    Texture2D rankTex = GetRankTexture(ctx->assets, ctx->gameOver.rank);
+    if (rankTex.id > 0) {
+        Rectangle src = {0.0f, 0.0f, (float)rankTex.width, (float)rankTex.height};
+        Rectangle dst = {(float)centerX - badgeSize * 0.5f, (float)circleY - badgeSize * 0.5f, badgeSize, badgeSize};
+        DrawTexturePro(rankTex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
+    } else {
+        // Procedural fallback
+        float circleRadius = 52.0f;
+        DrawCircle(centerX, circleY, circleRadius, (Color){15, 18, 25, 255});
+        DrawCircleLines(centerX, circleY, circleRadius, rank.color);
+        DrawCircleLines(centerX, circleY, circleRadius - 2.0f, ColorAlpha(GOLD, 0.6f));
+        DrawText("★", centerX - MeasureText("★", 38) / 2, circleY - 22, 38, rank.color);
+    }
 
     // Rank Title Text
     const char *rankText = TextFormat("[ %s ]", rank.name);
     int rankFs = 28;
     int rankW = MeasureText(rankText, rankFs);
-    DrawText(rankText, centerX - rankW / 2, modalY + 232, rankFs, rank.color);
+    DrawText(rankText, centerX - rankW / 2, modalY + 235, rankFs, rank.color);
 
     int titleFs = 15;
     int titleW = MeasureText(rank.title, titleFs);

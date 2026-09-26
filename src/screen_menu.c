@@ -193,6 +193,14 @@ static void DrawHighScoresView(const GameContext *ctx) {
     DrawText(TextFormat("Max Strike / Streak: %d", ctx->highScores.endlessBestStreak), cardX + 20, y1 + 95, 15, (Color){100, 240, 140, 255});
     DrawText(TextFormat("Spells Invoked: %d", ctx->highScores.endlessBestSpells), cardX + 20, y1 + 117, 15, RAYWHITE);
 
+    // Rank Badge Icon on the right
+    Texture2D endTex = GetRankTexture(ctx->assets, ctx->highScores.endlessBestRank);
+    if (endTex.id > 0) {
+        Rectangle src = {0.0f, 0.0f, (float)endTex.width, (float)endTex.height};
+        Rectangle dst = {(float)(cardX + cardW - 128), (float)(y1 + 16), 112.0f, 112.0f};
+        DrawTexturePro(endTex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
+    }
+
     // Time Attack Card
     int y2 = 720;
     int h2 = 145;
@@ -205,6 +213,14 @@ static void DrawHighScoresView(const GameContext *ctx) {
     DrawText(TextFormat("High Score: %d", ctx->highScores.timeAttackBestScore), cardX + 20, y2 + 72, 16, GOLD);
     DrawText(TextFormat("Max Strike / Streak: %d", ctx->highScores.timeAttackBestStreak), cardX + 20, y2 + 95, 15, (Color){100, 240, 140, 255});
     DrawText(TextFormat("Spells Invoked: %d", ctx->highScores.timeAttackBestSpells), cardX + 20, y2 + 117, 15, RAYWHITE);
+
+    // Rank Badge Icon on the right
+    Texture2D taTex = GetRankTexture(ctx->assets, ctx->highScores.timeAttackBestRank);
+    if (taTex.id > 0) {
+        Rectangle src = {0.0f, 0.0f, (float)taTex.width, (float)taTex.height};
+        Rectangle dst = {(float)(cardX + cardW - 128), (float)(y2 + 16), 112.0f, 112.0f};
+        DrawTexturePro(taTex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
+    }
 
     // Rank Ladder Guide
     int y3 = 880;
@@ -219,8 +235,18 @@ static void DrawHighScoresView(const GameContext *ctx) {
 
         DrawRectangle(bx, by, 128, 36, (Color){16, 18, 24, 255});
         DrawRectangleLines(bx, by, 128, 36, rInfo.color);
-        DrawText(rInfo.name, bx + 6, by + 5, 12, rInfo.color);
-        DrawText(TextFormat("%d+ Spells", rInfo.minSpells), bx + 6, by + 20, 11, (Color){130, 135, 150, 255});
+
+        Texture2D ladderTex = GetRankTexture(ctx->assets, (DotaRank)r);
+        if (ladderTex.id > 0) {
+            Rectangle src = {0.0f, 0.0f, (float)ladderTex.width, (float)ladderTex.height};
+            Rectangle dst = {(float)(bx + 4), (float)(by + 3), 30.0f, 30.0f};
+            DrawTexturePro(ladderTex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
+            DrawText(rInfo.name, bx + 38, by + 5, 12, rInfo.color);
+            DrawText(TextFormat("%d+ Spells", rInfo.minSpells), bx + 38, by + 20, 11, (Color){130, 135, 150, 255});
+        } else {
+            DrawText(rInfo.name, bx + 6, by + 5, 12, rInfo.color);
+            DrawText(TextFormat("%d+ Spells", rInfo.minSpells), bx + 6, by + 20, 11, (Color){130, 135, 150, 255});
+        }
     }
 
     // Back button
