@@ -2,7 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 
-void ResetGameplaySession(GameContext *ctx, bool timed) {
+void ResetGameplaySession(GameContext *ctx, GameplayMode mode) {
     if (!ctx) return;
 
     InitOrbBuffer(&ctx->orbBuffer);
@@ -14,10 +14,24 @@ void ResetGameplaySession(GameContext *ctx, bool timed) {
     ctx->highestStreak = 0;
     ctx->totalAttempted = 0;
     ctx->totalCorrect = 0;
+    ctx->timeElapsed = 0.0f;
 
-    ctx->isTimedMode = timed;
-    ctx->roundTimer = timed ? 60.0f : 0.0f;
-    ctx->maxRoundTimer = timed ? 60.0f : 0.0f;
+    ctx->gameMode = mode;
+    ctx->gameOver = (GameOverModal){0};
+
+    if (mode == GAME_MODE_ENDLESS) {
+        ctx->isTimedMode = true;
+        ctx->roundTimer = 15.0f;
+        ctx->maxRoundTimer = 15.0f;
+    } else if (mode == GAME_MODE_TIME_ATTACK) {
+        ctx->isTimedMode = true;
+        ctx->roundTimer = 60.0f;
+        ctx->maxRoundTimer = 60.0f;
+    } else {
+        ctx->isTimedMode = false;
+        ctx->roundTimer = 0.0f;
+        ctx->maxRoundTimer = 0.0f;
+    }
 
     ctx->feedback = (QuizFeedback){0};
     for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
@@ -27,6 +41,32 @@ void ResetGameplaySession(GameContext *ctx, bool timed) {
     ctx->invokePulse = (InvokePulse){0};
 
     ctx->targetSpell = (SpellId)GetRandomValue(0, SPELL_COUNT - 1);
+}
+
+static void TriggerGameOver(GameContext *ctx, bool defeatedByMiss) {
+    ctx->gameOver.active = true;
+    ctx->gameOver.mode = ctx->gameMode;
+    ctx->gameOver.score = ctx->score;
+    ctx->gameOver.totalSpells = ctx->totalCorrect;
+    ctx->gameOver.streak = ctx->streak;
+    ctx->gameOver.highestStreak = ctx->highestStreak;
+    ctx->gameOver.totalAttempted = ctx->totalAttempted;
+    ctx->gameOver.timeElapsed = ctx->timeElapsed;
+    ctx->gameOver.defeatedByMiss = defeatedByMiss;
+    ctx->gameOver.selectedButton = 0; // default to Try Again
+
+    ctx->gameOver.rank = CalculateDotaRank(ctx->gameMode, ctx->totalCorrect);
+    ctx->gameOver.isNewRecord = UpdateHighScores(&ctx->highScores, ctx->gameMode,
+                                                 ctx->score, ctx->highestStreak,
+                                                 ctx->totalCorrect, ctx->gameOver.rank);
+
+    if (ctx->gameOver.rank >= DOTA_RANK_DIVINE) {
+        PlayVoiceEvent(ctx->audio, VOICE_VICTORY);
+    } else if (defeatedByMiss || ctx->gameOver.rank <= DOTA_RANK_GUARDIAN) {
+        PlayVoiceEvent(ctx->audio, VOICE_DEFEAT);
+    } else {
+        PlayVoiceEvent(ctx->audio, VOICE_START);
+    }
 }
 
 static void PushOrbWithAnim(OrbBuffer *buffer, OrbAnimState *anim, OrbType orb) {
@@ -43,36 +83,66 @@ static void PushOrbWithAnim(OrbBuffer *buffer, OrbAnimState *anim, OrbType orb) 
     anim->flashAlpha[2] = 1.0f; // bright flash for newest orb on the right
 }
 
-static void DrawTitle(bool timed, float timer) {
+static void DrawTitle(GameplayMode mode, float timer) {
     int centerX = VIRTUAL_WIDTH / 2;
 
-    const int gameTitleFs = 42;
-    const char *gameTitle = timed ? "TIME ATTACK (60s)" : "PRACTICE MODE";
-    const int gameTitleW = MeasureText(gameTitle, gameTitleFs);
-    Color titleColor = timed ? (Color){255, 190, 60, 255} : RAYWHITE;
-    DrawText(gameTitle, centerX - gameTitleW / 2, 70, gameTitleFs, titleColor);
+    const int gameTitleFs = 38;
+    const char *gameTitle = "PRACTICE MODE";
+    Color titleColor = RAYWHITE;
 
-    if (timed) {
+    if (mode == GAME_MODE_ENDLESS) {
+        gameTitle = "ENDLESS SURVIVAL";
+        titleColor = (Color){255, 80, 80, 255};
+    } else if (mode == GAME_MODE_TIME_ATTACK) {
+        gameTitle = "TIME ATTACK (60s)";
+        titleColor = (Color){255, 190, 60, 255};
+    }
+
+    const int gameTitleW = MeasureText(gameTitle, gameTitleFs);
+    DrawText(gameTitle, centerX - gameTitleW / 2, 60, gameTitleFs, titleColor);
+
+    if (mode == GAME_MODE_ENDLESS) {
+        const char *timeStr = TextFormat("TIME REMAINING: %.1fs", timer);
+        int timeFs = 18;
+        int timeW = MeasureText(timeStr, timeFs);
+        Color timeCol = (timer > 5.0f) ? (Color){100, 240, 140, 255} : (Color){255, 60, 60, 255};
+        DrawText(timeStr, centerX - timeW / 2, 108, timeFs, timeCol);
+
+        // Progress bar (scaled against 25s max)
+        int barW = 500;
+        int barH = 6;
+        int barX = centerX - barW / 2;
+        int barY = 134;
+        DrawRectangle(barX, barY, barW, barH, (Color){30, 35, 45, 255});
+        float ratio = timer / 25.0f;
+        if (ratio < 0.0f) ratio = 0.0f;
+        if (ratio > 1.0f) ratio = 1.0f;
+        DrawRectangle(barX, barY, (int)((float)barW * ratio), barH, timeCol);
+
+        const char *warn = "SUDDEN DEATH: Miss = Defeat | Correct = +2.5s";
+        int warnW = MeasureText(warn, 13);
+        DrawText(warn, centerX - warnW / 2, 146, 13, (Color){255, 150, 150, 255});
+    } else if (mode == GAME_MODE_TIME_ATTACK) {
         const char *timeStr = TextFormat("TIME REMAINING: %.1fs", timer);
         int timeFs = 18;
         int timeW = MeasureText(timeStr, timeFs);
         Color timeCol = (timer > 15.0f) ? (Color){100, 240, 140, 255} : (Color){255, 80, 80, 255};
-        DrawText(timeStr, centerX - timeW / 2, 122, timeFs, timeCol);
+        DrawText(timeStr, centerX - timeW / 2, 108, timeFs, timeCol);
 
-        // Progress bar
+        // Progress bar (60s)
         int barW = 500;
         int barH = 6;
         int barX = centerX - barW / 2;
-        int barY = 148;
+        int barY = 134;
         DrawRectangle(barX, barY, barW, barH, (Color){30, 35, 45, 255});
         float ratio = timer / 60.0f;
         if (ratio < 0.0f) ratio = 0.0f;
-        DrawRectangle(barX, barY, (int)(barW * ratio), barH, timeCol);
+        DrawRectangle(barX, barY, (int)((float)barW * ratio), barH, timeCol);
     } else {
-        const int instructionTextFs = 16;
+        const int instructionTextFs = 15;
         const char *instructionText = "Press Q, W, E to fill orbs - Press ESC to return to Menu";
         const int instructionTextW = MeasureText(instructionText, instructionTextFs);
-        DrawText(instructionText, centerX - instructionTextW / 2, 125, instructionTextFs, (Color){150, 155, 170, 255});
+        DrawText(instructionText, centerX - instructionTextW / 2, 118, instructionTextFs, (Color){150, 155, 170, 255});
     }
 }
 
@@ -87,7 +157,7 @@ static void DrawScoreBar(int score, int streak) {
     DrawText(scoreText, cardX, barY, 20, GOLD);
 
     // Streak on the right
-    const char *streakText = TextFormat("STREAK: %d", streak);
+    const char *streakText = TextFormat("STRIKE / STREAK: %d", streak);
     int streakW = MeasureText(streakText, 20);
     Color streakColor = (streak > 0) ? (Color){80, 240, 120, 255} : (Color){140, 145, 155, 255};
     DrawText(streakText, cardX + cardW - streakW, barY, 20, streakColor);
@@ -117,7 +187,6 @@ static void DrawTargetSpellCard(SpellId targetSpell, const QuizFeedback *feedbac
     DrawRectangleLinesEx((Rectangle){(float)cardX, (float)cardY, (float)cardW, (float)cardH},
                          2.0f, borderColor);
 
-    // Subtle glow overlay on feedback
     if (fbAlpha > 0.0f) {
         DrawRectangle(cardX + 2, cardY + 2, cardW - 4, cardH - 4,
                       ColorAlpha(feedback->color, fbAlpha * 0.18f));
@@ -152,8 +221,7 @@ static void DrawTargetSpellCard(SpellId targetSpell, const QuizFeedback *feedbac
     // Spell Name
     int nameFs = 24;
     int nameW = MeasureText(info->name, nameFs);
-    DrawText(info->name, centerX - (nameW / 2), iconY + iconSize + 12, nameFs,
-             RAYWHITE);
+    DrawText(info->name, centerX - (nameW / 2), iconY + iconSize + 12, nameFs, RAYWHITE);
 
     // Floating Feedback Badge
     if (fbAlpha > 0.0f) {
@@ -184,7 +252,6 @@ static void DrawOrbs(const OrbBuffer *buffer, const GameAssets *assets, const Or
         float posX = (float)(centerX + (i - 1) * orbSpacing);
         bool hasOrb = (buffer->orbs[i] != ORB_NONE);
 
-        // Subtle floating bobbing motion like Dota 2 hovering orbs
         float bobOffset = hasOrb ? sinf(time * 3.5f + (float)i * 2.0f) * 6.0f : 0.0f;
         float currentY = (float)baseY + bobOffset;
 
@@ -197,18 +264,15 @@ static void DrawOrbs(const OrbBuffer *buffer, const GameAssets *assets, const Or
             Texture2D tex = GetCircularOrbTexture(assets, orb);
 
             if (tex.id > 0) {
-                // 1. Draw scaled circular texture centered at (posX, currentY)
                 Rectangle src = {0.0f, 0.0f, (float)tex.width, (float)tex.height};
                 Rectangle dest = {posX - currentRadius, currentY - currentRadius,
                                   currentRadius * 2.0f, currentRadius * 2.0f};
                 DrawTexturePro(tex, src, dest, (Vector2){0, 0}, 0.0f, WHITE);
 
-                // 2. Layered glowing elemental rims
                 DrawCircleLines((int)posX, (int)currentY, currentRadius + 1.0f, baseColor);
                 DrawCircleLines((int)posX, (int)currentY, currentRadius + 2.5f, ColorAlpha(baseColor, 0.65f));
                 DrawCircleLines((int)posX, (int)currentY, currentRadius + 4.5f, ColorAlpha(baseColor, 0.30f));
 
-                // 3. Entry flash / shockwave ripple on new orb
                 if (anim && anim->flashAlpha[i] > 0.0f) {
                     float expand = (1.0f - anim->flashAlpha[i]) * 24.0f;
                     DrawCircleLines((int)posX, (int)currentY, currentRadius + expand,
@@ -218,7 +282,6 @@ static void DrawOrbs(const OrbBuffer *buffer, const GameAssets *assets, const Or
                 DrawCircle((int)posX, (int)currentY, currentRadius, baseColor);
             }
         } else {
-            // Inactive / empty socket
             DrawCircle((int)posX, (int)currentY, baseRadius, (Color){20, 22, 28, 255});
             DrawCircleLines((int)posX, (int)currentY, baseRadius, (Color){50, 55, 68, 255});
             DrawCircleLines((int)posX, (int)currentY, baseRadius * 0.55f, (Color){35, 38, 48, 255});
@@ -324,19 +387,225 @@ static void DrawAbilitySlots(const SpellSlots *spellSlots, const GameAssets *ass
     }
 }
 
-void UpdateGameplayScreen(GameContext *ctx, float dt) {
+static void DrawGameOverModal(const GameContext *ctx, Vector2 mouse) {
+    (void)mouse;
+    int centerX = VIRTUAL_WIDTH / 2;
+
+    // Dark background dim overlay
+    DrawRectangle(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT, (Color){10, 12, 16, 220});
+
+    // Centered modal box
+    int modalW = 560;
+    int modalH = 740;
+    int modalX = centerX - modalW / 2;
+    int modalY = (VIRTUAL_HEIGHT - modalH) / 2;
+
+    RankInfo rank = GetDotaRankInfo(ctx->gameOver.rank);
+
+    // Modal background & borders
+    DrawRectangle(modalX, modalY, modalW, modalH, (Color){20, 24, 34, 255});
+    DrawRectangleLinesEx((Rectangle){(float)modalX, (float)modalY, (float)modalW, (float)modalH}, 2.5f, rank.color);
+    DrawRectangleLinesEx((Rectangle){(float)modalX + 4, (float)modalY + 4, (float)modalW - 8, (float)modalH - 8}, 1.0f, ColorAlpha(GOLD, 0.45f));
+
+    // Header Title
+    const char *header = "RUN OVER";
+    Color headerCol = (Color){255, 100, 100, 255};
+
+    if (ctx->gameOver.mode == GAME_MODE_ENDLESS) {
+        if (ctx->gameOver.defeatedByMiss) {
+            header = "SUDDEN DEATH MISS!";
+            headerCol = (Color){255, 60, 60, 255};
+        } else {
+            header = "TIME EXPIRED!";
+            headerCol = (Color){255, 160, 80, 255};
+        }
+    } else {
+        header = "TIME'S UP!";
+        headerCol = (Color){255, 200, 80, 255};
+    }
+
+    int headFs = 32;
+    int headW = MeasureText(header, headFs);
+    DrawText(header, centerX - headW / 2, modalY + 32, headFs, headerCol);
+
+    const char *subMode = (ctx->gameOver.mode == GAME_MODE_ENDLESS) ? "ENDLESS SURVIVAL RESULTS" : "TIME ATTACK RESULTS";
+    int subFs = 15;
+    int subW = MeasureText(subMode, subFs);
+    DrawText(subMode, centerX - subW / 2, modalY + 74, subFs, (Color){160, 165, 180, 255});
+
+    // Rank Circle & Badge
+    int circleY = modalY + 165;
+    float circleRadius = 52.0f;
+    DrawCircle(centerX, circleY, circleRadius + 8.0f, ColorAlpha(rank.color, 0.25f));
+    DrawCircle(centerX, circleY, circleRadius, (Color){15, 18, 25, 255});
+    DrawCircleLines(centerX, circleY, circleRadius, rank.color);
+    DrawCircleLines(centerX, circleY, circleRadius - 2.0f, ColorAlpha(GOLD, 0.6f));
+
+    // Rank Star/Icon
+    DrawText("★", centerX - MeasureText("★", 38) / 2, circleY - 22, 38, rank.color);
+
+    // Rank Title Text
+    const char *rankText = TextFormat("[ %s ]", rank.name);
+    int rankFs = 28;
+    int rankW = MeasureText(rankText, rankFs);
+    DrawText(rankText, centerX - rankW / 2, modalY + 232, rankFs, rank.color);
+
+    int titleFs = 15;
+    int titleW = MeasureText(rank.title, titleFs);
+    DrawText(rank.title, centerX - titleW / 2, modalY + 268, titleFs, (Color){200, 205, 220, 255});
+
+    // New High Score Banner
+    if (ctx->gameOver.isNewRecord) {
+        const char *recTxt = "★ NEW PERSONAL RECORD! ★";
+        int recFs = 16;
+        int recW = MeasureText(recTxt, recFs);
+        DrawRectangle(centerX - recW / 2 - 16, modalY + 296, recW + 32, 28, (Color){40, 32, 16, 255});
+        DrawRectangleLines(centerX - recW / 2 - 16, modalY + 296, recW + 32, 28, GOLD);
+        DrawText(recTxt, centerX - recW / 2, modalY + 301, recFs, GOLD);
+    }
+
+    // Stats Grid
+    int statsY = modalY + 342;
+    int cardInnerW = 480;
+    int cardInnerX = centerX - cardInnerW / 2;
+
+    DrawRectangle(cardInnerX, statsY, cardInnerW, 230, (Color){16, 18, 26, 255});
+    DrawRectangleLines(cardInnerX, statsY, cardInnerW, 230, (Color){45, 50, 65, 255});
+
+    // Score
+    DrawText("FINAL SCORE:", cardInnerX + 24, statsY + 20, 16, (Color){180, 185, 200, 255});
+    const char *scoreStr = TextFormat("%d", ctx->gameOver.score);
+    int scW = MeasureText(scoreStr, 28);
+    DrawText(scoreStr, cardInnerX + cardInnerW - scW - 24, statsY + 14, 28, GOLD);
+
+    DrawLine(cardInnerX + 16, statsY + 54, cardInnerX + cardInnerW - 16, statsY + 54, (Color){40, 44, 58, 255});
+
+    // Total Spells
+    DrawText("Total Spells Invoked:", cardInnerX + 24, statsY + 68, 16, RAYWHITE);
+    const char *spellsStr = TextFormat("%d", ctx->gameOver.totalSpells);
+    DrawText(spellsStr, cardInnerX + cardInnerW - MeasureText(spellsStr, 18) - 24, statsY + 68, 18, (Color){100, 240, 140, 255});
+
+    // Max Streak / Strikes
+    DrawText("Max Strike / Streak:", cardInnerX + 24, statsY + 104, 16, RAYWHITE);
+    const char *streakStr = TextFormat("%d", ctx->gameOver.highestStreak);
+    DrawText(streakStr, cardInnerX + cardInnerW - MeasureText(streakStr, 18) - 24, statsY + 104, 18, (Color){255, 190, 60, 255});
+
+    // Accuracy
+    int acc = 0;
+    if (ctx->gameOver.totalAttempted > 0) {
+        acc = (ctx->gameOver.totalSpells * 100) / ctx->gameOver.totalAttempted;
+    }
+    DrawText("Invocation Accuracy:", cardInnerX + 24, statsY + 140, 16, RAYWHITE);
+    const char *accStr = TextFormat("%d%%", acc);
+    DrawText(accStr, cardInnerX + cardInnerW - MeasureText(accStr, 18) - 24, statsY + 140, 18, (acc >= 90) ? GREEN : (Color){200, 205, 220, 255});
+
+    // Time Survived / Spent
+    DrawText("Time Survived:", cardInnerX + 24, statsY + 176, 16, RAYWHITE);
+    const char *timeStr = TextFormat("%.1fs", ctx->gameOver.timeElapsed);
+    DrawText(timeStr, cardInnerX + cardInnerW - MeasureText(timeStr, 18) - 24, statsY + 176, 18, RAYWHITE);
+
+    // Action Buttons
+    int btnW = 230;
+    int btnH = 62;
+    int btnY = modalY + 600;
+
+    int btn1X = centerX - btnW - 12;
+    int btn2X = centerX + 12;
+
+    bool sel1 = (ctx->gameOver.selectedButton == 0);
+    bool sel2 = (ctx->gameOver.selectedButton == 1);
+
+    // Button 1: Try Again
+    DrawRectangle(btn1X, btnY, btnW, btnH, sel1 ? (Color){38, 48, 70, 255} : (Color){25, 30, 42, 255});
+    DrawRectangleLinesEx((Rectangle){(float)btn1X, (float)btnY, (float)btnW, (float)btnH}, sel1 ? 2.5f : 1.0f, sel1 ? GOLD : (Color){60, 65, 85, 255});
+    DrawText("TRY AGAIN", btn1X + (btnW - MeasureText("TRY AGAIN", 18)) / 2, btnY + 14, 18, sel1 ? (Color){255, 245, 220, 255} : RAYWHITE);
+    DrawText("[ ENTER / SPACE ]", btn1X + (btnW - MeasureText("[ ENTER / SPACE ]", 11)) / 2, btnY + 38, 11, sel1 ? GOLD : (Color){130, 135, 150, 255});
+
+    // Button 2: Main Menu
+    DrawRectangle(btn2X, btnY, btnW, btnH, sel2 ? (Color){38, 48, 70, 255} : (Color){25, 30, 42, 255});
+    DrawRectangleLinesEx((Rectangle){(float)btn2X, (float)btnY, (float)btnW, (float)btnH}, sel2 ? 2.5f : 1.0f, sel2 ? GOLD : (Color){60, 65, 85, 255});
+    DrawText("MAIN MENU", btn2X + (btnW - MeasureText("MAIN MENU", 18)) / 2, btnY + 14, 18, sel2 ? (Color){255, 245, 220, 255} : RAYWHITE);
+    DrawText("[ ESCAPE ]", btn2X + (btnW - MeasureText("[ ESCAPE ]", 11)) / 2, btnY + 38, 11, sel2 ? GOLD : (Color){130, 135, 150, 255});
+
+    const char *ftr = "Select with [ARROWS] or [MOUSE] and press [ENTER]";
+    DrawText(ftr, centerX - MeasureText(ftr, 13) / 2, modalY + modalH - 42, 13, (Color){120, 125, 140, 255});
+}
+
+void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
+    // -------------------------------------------------------------
+    // MODAL STATE: GAME OVER POPUP
+    // -------------------------------------------------------------
+    if (ctx->gameOver.active) {
+        int centerX = VIRTUAL_WIDTH / 2;
+        int modalH = 740;
+        int modalY = (VIRTUAL_HEIGHT - modalH) / 2;
+        int btnW = 230;
+        int btnH = 62;
+        int btnY = modalY + 600;
+
+        int btn1X = centerX - btnW - 12;
+        int btn2X = centerX + 12;
+
+        Rectangle r1 = {(float)btn1X, (float)btnY, (float)btnW, (float)btnH};
+        Rectangle r2 = {(float)btn2X, (float)btnY, (float)btnW, (float)btnH};
+
+        Vector2 mouseDelta = GetMouseDelta();
+        if (fabsf(mouseDelta.x) > 0.8f || fabsf(mouseDelta.y) > 0.8f) {
+            if (CheckCollisionPointRec(mouse, r1)) ctx->gameOver.selectedButton = 0;
+            if (CheckCollisionPointRec(mouse, r2)) ctx->gameOver.selectedButton = 1;
+        }
+
+        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A) || IsKeyPressed(KEY_UP)) {
+            ctx->gameOver.selectedButton = 0;
+            PlayOrbSound(ctx->audio, ORB_WEX);
+        }
+        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D) || IsKeyPressed(KEY_DOWN)) {
+            ctx->gameOver.selectedButton = 1;
+            PlayOrbSound(ctx->audio, ORB_WEX);
+        }
+
+        bool click1 = (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, r1));
+        bool click2 = (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, r2));
+
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || click1 || click2) {
+            int choice = (click1) ? 0 : (click2 ? 1 : ctx->gameOver.selectedButton);
+            if (choice == 0) {
+                // Restart mode
+                PlayInvokeSound(ctx->audio);
+                ResetGameplaySession(ctx, ctx->gameMode);
+            } else {
+                // Return to Main Menu
+                PlayOrbSound(ctx->audio, ORB_QUAS);
+                StartTransition(&ctx->transition, SCREEN_MENU);
+            }
+            return;
+        }
+
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            PlayOrbSound(ctx->audio, ORB_QUAS);
+            StartTransition(&ctx->transition, SCREEN_MENU);
+            return;
+        }
+
+        return;
+    }
+
+    // -------------------------------------------------------------
+    // ACTIVE GAMEPLAY UPDATE
+    // -------------------------------------------------------------
     if (IsKeyPressed(KEY_ESCAPE)) {
         PlayOrbSound(ctx->audio, ORB_WEX);
         StartTransition(&ctx->transition, SCREEN_MENU);
         return;
     }
 
+    ctx->timeElapsed += dt;
+
     if (ctx->isTimedMode) {
         ctx->roundTimer -= dt;
         if (ctx->roundTimer <= 0.0f) {
             ctx->roundTimer = 0.0f;
-            PlayVoiceEvent(ctx->audio, VOICE_DEFEAT);
-            StartTransition(&ctx->transition, SCREEN_MENU);
+            TriggerGameOver(ctx, false);
             return;
         }
     }
@@ -374,18 +643,31 @@ void UpdateGameplayScreen(GameContext *ctx, float dt) {
         LogOrbPress(&ctx->actionLog, ORB_EXORT);
         PlayOrbSound(ctx->audio, ORB_EXORT);
     }
+
     if (IsKeyPressed(KEY_R)) {
         ctx->invokePulse.timer = 0.35f;
         ctx->invokePulse.maxDuration = 0.35f;
         PlayInvokeSound(ctx->audio);
 
         if (ctx->orbBuffer.count < MAX_ACTIVE_ORBS) {
-            ctx->feedback.timer = 0.85f;
-            ctx->feedback.maxDuration = 0.85f;
-            ctx->feedback.color = (Color){255, 180, 50, 255};
-            snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "NEED 3 ORBS");
-            LogSpellInvoke(&ctx->actionLog, SPELL_NONE, &ctx->orbBuffer, false);
-            PlayQuizFeedbackSound(ctx->audio, false);
+            if (ctx->gameMode == GAME_MODE_ENDLESS) {
+                // In Endless, incomplete orbs counts as Miss -> Sudden Death!
+                ctx->totalAttempted++;
+                ctx->feedback.timer = 0.85f;
+                ctx->feedback.maxDuration = 0.85f;
+                ctx->feedback.color = (Color){255, 65, 65, 255};
+                snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "NEED 3 ORBS!");
+                LogSpellInvoke(&ctx->actionLog, SPELL_NONE, &ctx->orbBuffer, false);
+                TriggerGameOver(ctx, true);
+                return;
+            } else {
+                ctx->feedback.timer = 0.85f;
+                ctx->feedback.maxDuration = 0.85f;
+                ctx->feedback.color = (Color){255, 180, 50, 255};
+                snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "NEED 3 ORBS");
+                LogSpellInvoke(&ctx->actionLog, SPELL_NONE, &ctx->orbBuffer, false);
+                PlayQuizFeedbackSound(ctx->audio, false);
+            }
         } else {
             SpellId invokedSpell = ResolveSpell(&ctx->orbBuffer);
 
@@ -398,10 +680,21 @@ void UpdateGameplayScreen(GameContext *ctx, float dt) {
                 int points = 100 * ctx->streak;
                 ctx->score += points;
 
-                ctx->feedback.timer = 0.85f;
-                ctx->feedback.maxDuration = 0.85f;
-                ctx->feedback.color = (Color){50, 240, 100, 255};
-                snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "+%d", points);
+                if (ctx->gameMode == GAME_MODE_ENDLESS) {
+                    // Endless Mode: grant +2.5s time bonus!
+                    ctx->roundTimer += 2.5f;
+                    if (ctx->roundTimer > 25.0f) ctx->roundTimer = 25.0f; // cap max breathing room at 25s
+
+                    ctx->feedback.timer = 0.85f;
+                    ctx->feedback.maxDuration = 0.85f;
+                    ctx->feedback.color = (Color){50, 240, 100, 255};
+                    snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "+%d (+2.5s)", points);
+                } else {
+                    ctx->feedback.timer = 0.85f;
+                    ctx->feedback.maxDuration = 0.85f;
+                    ctx->feedback.color = (Color){50, 240, 100, 255};
+                    snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "+%d", points);
+                }
 
                 PlayQuizFeedbackSound(ctx->audio, true);
 
@@ -422,16 +715,32 @@ void UpdateGameplayScreen(GameContext *ctx, float dt) {
                 ctx->targetSpell = nextSpell;
             } else {
                 ctx->totalAttempted++;
-                if (ctx->streak >= 5) {
-                    PlayVoiceEvent(ctx->audio, VOICE_MISS);
-                }
-                ctx->streak = 0;
-                ctx->feedback.timer = 0.85f;
-                ctx->feedback.maxDuration = 0.85f;
-                ctx->feedback.color = (Color){255, 65, 65, 255};
-                snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "MISS!");
 
-                PlayQuizFeedbackSound(ctx->audio, false);
+                if (ctx->gameMode == GAME_MODE_ENDLESS) {
+                    // Sudden Death: any miss ends the game immediately!
+                    ctx->streak = 0;
+                    ctx->feedback.timer = 0.85f;
+                    ctx->feedback.maxDuration = 0.85f;
+                    ctx->feedback.color = (Color){255, 65, 65, 255};
+                    snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "MISS!");
+
+                    bool changed = InvokeSpell(&ctx->spellSlots, &ctx->orbBuffer);
+                    LogSpellInvoke(&ctx->actionLog, invokedSpell, &ctx->orbBuffer, changed);
+
+                    TriggerGameOver(ctx, true);
+                    return;
+                } else {
+                    if (ctx->streak >= 5) {
+                        PlayVoiceEvent(ctx->audio, VOICE_MISS);
+                    }
+                    ctx->streak = 0;
+                    ctx->feedback.timer = 0.85f;
+                    ctx->feedback.maxDuration = 0.85f;
+                    ctx->feedback.color = (Color){255, 65, 65, 255};
+                    snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "MISS!");
+
+                    PlayQuizFeedbackSound(ctx->audio, false);
+                }
             }
 
             bool changed = InvokeSpell(&ctx->spellSlots, &ctx->orbBuffer);
@@ -459,12 +768,12 @@ void UpdateGameplayScreen(GameContext *ctx, float dt) {
     }
 }
 
-void DrawGameplayScreen(const GameContext *ctx) {
+void DrawGameplayScreen(GameContext *ctx, Vector2 mouse) {
     ClearBackground((Color){18, 20, 24, 255});
 
     int centerX = VIRTUAL_WIDTH / 2;
 
-    DrawTitle(ctx->isTimedMode, ctx->roundTimer);
+    DrawTitle(ctx->gameMode, ctx->roundTimer);
     DrawScoreBar(ctx->score, ctx->streak);
     DrawTargetSpellCard(ctx->targetSpell, &ctx->feedback, ctx->assets);
     DrawOrbs(&ctx->orbBuffer, ctx->assets, &ctx->orbAnim);
@@ -474,4 +783,9 @@ void DrawGameplayScreen(const GameContext *ctx) {
     int feedY = 895;
     int feedH = (VIRTUAL_HEIGHT - 25) - feedY; // 360px bottom coverage
     DrawActionLog(&ctx->actionLog, centerX, feedY, feedW, feedH);
+
+    // If game over modal is active, draw it on top!
+    if (ctx->gameOver.active) {
+        DrawGameOverModal(ctx, mouse);
+    }
 }

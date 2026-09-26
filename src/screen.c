@@ -10,7 +10,12 @@ void InitGameContext(GameContext *ctx, const GameAssets *assets, AudioManager *a
     ctx->assets = assets;
     ctx->audio = audio;
 
+    LoadSettings(&ctx->settings);
+    LoadHighScores(&ctx->highScores);
+
+    ctx->menuPage = MENU_PAGE_MAIN;
     ctx->menuSelected = 0;
+    ctx->gameOver = (GameOverModal){0};
 
     ctx->transition.active = false;
     ctx->transition.alpha = 0.0f;
@@ -18,7 +23,7 @@ void InitGameContext(GameContext *ctx, const GameAssets *assets, AudioManager *a
     ctx->transition.to = SCREEN_LOGO;
     ctx->transition.speed = 3.0f; // Quick responsive 330ms fade
 
-    ResetGameplaySession(ctx, false);
+    ResetGameplaySession(ctx, GAME_MODE_PRACTICE);
 }
 
 void StartTransition(ScreenTransition *trans, GameScreen to) {

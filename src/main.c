@@ -55,7 +55,8 @@ int main(void) {
                     break;
                 case SCREEN_PRACTICE:
                 case SCREEN_TIME_ATTACK:
-                    UpdateGameplayScreen(&ctx, dt);
+                case SCREEN_ENDLESS:
+                    UpdateGameplayScreen(&ctx, dt, mouse);
                     break;
                 case SCREEN_SPELLBOOK:
                     UpdateSpellbookScreen(&ctx, dt, mouse);
@@ -78,7 +79,8 @@ int main(void) {
                     break;
                 case SCREEN_PRACTICE:
                 case SCREEN_TIME_ATTACK:
-                    DrawGameplayScreen(&ctx);
+                case SCREEN_ENDLESS:
+                    DrawGameplayScreen(&ctx, mouse);
                     break;
                 case SCREEN_SPELLBOOK:
                     DrawSpellbookScreen(&ctx, mouse);

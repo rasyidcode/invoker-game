@@ -46,11 +46,13 @@ The Invoker Game challenges players to rapidly manipulate three elemental reagen
 
 ## Game Modes & Features
 
-* **Practice / Sandbox**: Freeform spell invocation and casting with on-screen visual feedback and action logging.
-* **Speed Trainer / Time Attack**: The core challenge! Race against a 30- or 60-second timer to invoke randomly prompted target spells with combo multipliers and APM tracking.
-* **Interactive Spell Book**: Catalog of all 10 spells with animated recipe badges and click-to-audition Dota 2 spell cast audio cues.
-* **Settings & Audio Controls**: In-game configuration screen with sliders and toggles for Master/SFX/Voice/Music volumes, round timer, recipe helper, and fullscreen mode.
-* **Quiz / Memorization**: Untimed recipe practice mode to build initial muscle memory.
+* **Endless Survival (Sudden Death)**: High-stakes survival starting with a 15-second clock. Each correct spell awards **+2.5s**, while **any missed invoke triggers instant defeat**!
+* **Speed Trainer / Time Attack**: The classic 60-second speed test to push invocation APM and combo streak multipliers.
+* **Practice / Sandbox**: Freeform untimed invocation and casting sandbox with on-screen visual feedback and action logging.
+* **Dota 2 Rank System**: Official 8-tier ranking from **Herald** to **Immortal** based on invocation performance and score.
+* **Interactive Spell Book**: Catalog of all 10 spells with animated recipe badges and click-to-audition Dota 2 spell audio cues.
+* **Hall of Invocation (High Scores)**: Tracks personal records, highest strikes/streaks, and rank medals saved to `scores.dat`.
+* **Settings & Audio Controls**: In-game configuration screen with sliders and toggles for Master/SFX/Voice/Music volumes and preferences saved to `settings.dat`.
 
 ---
 
@@ -148,14 +150,14 @@ invoker-game/
 └── src/
     ├── assets.c         # Texture and icon loading/unloading
     ├── audio.c          # Raylib audio loading, sound effects, voice cues
+    ├── config.c         # Settings & high score persistence, Dota 2 rank logic
     ├── log.c            # Action log FIFO ring buffer and HUD rendering
     ├── main.c           # Entry point and Raylib render loop
     ├── orb.c            # Orb state manipulation and FIFO queue implementation
     ├── screen.c         # Screen state machine and transition handling
-    ├── screen_gameplay.c# Gameplay screen (Practice & Time Attack)
+    ├── screen_gameplay.c# Gameplay screen (Endless, Time Attack & Practice)
     ├── screen_logo.c    # Animated Raylib splash screen
-    ├── screen_menu.c    # Main menu screen
-    ├── screen_settings.c# Settings screen (audio sliders, gameplay toggles)
+    ├── screen_menu.c    # Main menu screen (Play, High Score, Settings, Help)
     ├── screen_spellbook.c# Interactive spell catalog screen
     └── spell.c          # Spell registry, recipe resolution, and slot shifting
 ```

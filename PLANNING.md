@@ -66,26 +66,33 @@ To maintain high velocity and zero friction, extended gameplay styles have been 
 
 ## 3. Game Modes
 
-### Mode 1: Free Practice / Sandbox
-- No timer, no fail condition.
-- Real-time display of current orbs and spell slots.
-- Cast testing: pressing `D` or `F` plays the spell sound effect and visual trigger.
-- Visual spell-book helper showing all 10 recipes for quick reference.
+### Mode 1: Endless Survival (Sudden Death) - Flagship High-Stakes Mode
+- Starts with a **15.0-second countdown**.
+- Every correct spell invocation adds a **+2.5s time bonus** (capped at 25.0s maximum bank to maintain relentless urgency).
+- **Sudden Death Penalty**: Any missed invoke (wrong multiset combination or attempting to invoke with fewer than 3 orbs) results in **IMMEDIATE DEFEAT**!
+- If the countdown reaches zero, the run terminates immediately.
+- Evaluates player skill on the official **Dota 2 Rank Ladder**:
+  - **Herald**: 0 - 4 spells
+  - **Guardian**: 5 - 9 spells
+  - **Crusader**: 10 - 14 spells
+  - **Archon**: 15 - 21 spells
+  - **Legend**: 22 - 29 spells
+  - **Ancient**: 30 - 39 spells
+  - **Divine**: 40 - 49 spells
+  - **Immortal**: 50+ spells
 
-### Mode 2: Speed Trainer / Time Attack (Flagship Mode)
-- The game displays a target spell icon and name (e.g., *"Invoke: Sun Strike!"*).
-- Operates under **Free-Cast rules** (0 cooldowns, infinite mana) to maximize reaction speed and muscle memory.
-- The player must input the correct orbs and press `R` (optionally cast with `D`).
-- **Timed Run**: 30 or 60 seconds countdown.
-- **Score System**:
-  - Points awarded based on reaction time (faster invoke = higher score).
-  - Combo multiplier increases with consecutive correct invokes.
-  - Miss penalty: wrong invoke resets streak and deducts a small time/score penalty.
-- Summary screen showing: Total Spells Invoked, Average Reaction Time (ms), Accuracy (%), and APM.
+### Mode 2: Speed Trainer / Time Attack
+- Standard fixed **60-second speed test**.
+- High combo multiplier on streaks without sudden-death elimination.
+- Targets APM (actions per minute) and sustained invocation consistency.
 
-### Mode 3: Quiz / Recipe Memorization
-- Displays a spell name/icon and asks for the 3 orbs without time pressure.
-- Great for beginners to build initial neural pathways before attempting speed modes.
+### Mode 3: Free Practice / Sandbox
+- Untimed sandbox with zero fail conditions.
+- Real-time display of current orbs, slot shifting, action logging, and audition cues (`D` and `F`).
+
+### Mode 4: Interactive Spell Book & Guide
+- Complete 10-spell catalog with animated elemental badges and click-to-audition Dota 2 sound effects.
+- Controls & reagent guides for novice and advanced players.
 
 ---
 
@@ -179,10 +186,34 @@ typedef enum {
     SCREEN_MENU,
     SCREEN_PRACTICE,
     SCREEN_TIME_ATTACK,
+    SCREEN_ENDLESS,
     SCREEN_SPELLBOOK,
-    SCREEN_SETTINGS,
     SCREEN_GAME_OVER
 } GameScreen;
+
+typedef enum {
+    MENU_PAGE_MAIN = 0,
+    MENU_PAGE_PLAY,
+    MENU_PAGE_HELP,
+    MENU_PAGE_HIGHSCORE,
+    MENU_PAGE_SETTINGS,
+    MENU_PAGE_CONTROLS
+} MenuPage;
+
+typedef struct {
+    bool active;
+    GameplayMode mode;
+    int score;
+    int totalSpells;
+    int streak;
+    int highestStreak;
+    int totalAttempted;
+    float timeElapsed;
+    DotaRank rank;
+    bool isNewRecord;
+    bool defeatedByMiss;
+    int selectedButton; // 0: Try Again, 1: Main Menu
+} GameOverModal;
 
 typedef struct {
     GameScreen currentScreen;
@@ -191,8 +222,11 @@ typedef struct {
     // Subsystems
     const GameAssets *assets;
     AudioManager *audio;
+    GameSettings settings;
+    HighScoreData highScores;
 
     // Gameplay state
+    GameplayMode gameMode;
     OrbBuffer orbBuffer;
     SpellSlots spellSlots;
     ActionLog actionLog;
@@ -206,36 +240,73 @@ typedef struct {
     // Timer mode
     float roundTimer;
     float maxRoundTimer;
+    float timeElapsed;
     bool isTimedMode;
 
-    // Global Settings
-    GameSettings settings;
+    // Animations & Feedback
+    QuizFeedback feedback;
+    OrbAnimState orbAnim;
+    InvokePulse invokePulse;
+
+    // Menu selection & state
+    MenuPage menuPage;
+    int menuSelected;
+
+    // Game Over Popup Modal
+    GameOverModal gameOver;
+
+    // Screen transition
+    ScreenTransition transition;
 } GameContext;
 ```
 
-#### Configuration & Settings (`include/config.h`)
+#### Configuration, High Scores & Dota 2 Ranks (`include/config.h`)
 ```c
+typedef enum {
+    DOTA_RANK_HERALD = 0,
+    DOTA_RANK_GUARDIAN,
+    DOTA_RANK_CRUSADER,
+    DOTA_RANK_ARCHON,
+    DOTA_RANK_LEGEND,
+    DOTA_RANK_ANCIENT,
+    DOTA_RANK_DIVINE,
+    DOTA_RANK_IMMORTAL,
+    DOTA_RANK_COUNT
+} DotaRank;
+
 typedef struct {
     // Audio configuration
-    float master_volume;     // 0.0f to 1.0f
-    float sfx_volume;        // 0.0f to 1.0f
-    float voice_volume;      // 0.0f to 1.0f
-    float music_volume;      // 0.0f to 1.0f
-    bool sfx_muted;
-    bool voice_muted;
-    bool music_muted;
+    float masterVolume;     // 0.0f to 1.0f
+    float sfxVolume;        // 0.0f to 1.0f
+    float voiceVolume;      // 0.0f to 1.0f
+    float musicVolume;      // 0.0f to 1.0f
+    bool sfxMuted;
+    bool voiceMuted;
+    bool musicMuted;
 
     // Gameplay preferences
-    int round_duration;      // 30 or 60 seconds
-    bool show_recipe_helper; // Display 10-spell cheat-sheet on screen
-    bool show_action_feed;   // Display on-screen event log
-    bool screen_shake;       // Camera shake on heavy spells
+    int roundDuration;      // 30 or 60 seconds
+    bool showRecipeHelper;  // Display 10-spell cheat-sheet on screen
+    bool showActionFeed;    // Display on-screen event log
+    bool screenShake;       // Camera shake on heavy spells
 
     // Display
     bool fullscreen;
 } GameSettings;
+
+typedef struct {
+    int endlessBestScore;
+    int endlessBestStreak;
+    int endlessBestSpells;
+    DotaRank endlessBestRank;
+
+    int timeAttackBestScore;
+    int timeAttackBestStreak;
+    int timeAttackBestSpells;
+    DotaRank timeAttackBestRank;
+} HighScoreData;
 ```
-- **Persistence**: Saved to/loaded from `settings.dat` via binary `fwrite`/`fread`. Falls back to defaults if the file is absent.
+- **Persistence**: Saved to/loaded from `settings.dat` and `scores.dat` via binary `fwrite`/`fread`. Falls back to defaults if files are absent.
 
 #### On-Screen Action Log / Event Feed (`include/ui.h`)
 ```c

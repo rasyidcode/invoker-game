@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include "assets.h"
 #include "audio.h"
+#include "config.h"
 #include "log.h"
 #include "orb.h"
 #include "spell.h"
@@ -17,9 +18,19 @@ typedef enum {
     SCREEN_MENU,
     SCREEN_PRACTICE,
     SCREEN_TIME_ATTACK,
+    SCREEN_ENDLESS,
     SCREEN_SPELLBOOK,
     SCREEN_GAME_OVER
 } GameScreen;
+
+typedef enum {
+    MENU_PAGE_MAIN = 0,
+    MENU_PAGE_PLAY,
+    MENU_PAGE_HELP,
+    MENU_PAGE_HIGHSCORE,
+    MENU_PAGE_SETTINGS,
+    MENU_PAGE_CONTROLS
+} MenuPage;
 
 typedef struct {
     char text[32];
@@ -47,14 +58,32 @@ typedef struct {
 } ScreenTransition;
 
 typedef struct {
+    bool active;
+    GameplayMode mode;
+    int score;
+    int totalSpells;
+    int streak;
+    int highestStreak;
+    int totalAttempted;
+    float timeElapsed;
+    DotaRank rank;
+    bool isNewRecord;
+    bool defeatedByMiss;
+    int selectedButton; // 0: Try Again, 1: Main Menu
+} GameOverModal;
+
+typedef struct {
     GameScreen currentScreen;
     bool shouldExit;
 
     // Subsystems
     const GameAssets *assets;
     AudioManager *audio;
+    GameSettings settings;
+    HighScoreData highScores;
 
     // Gameplay state
+    GameplayMode gameMode;
     OrbBuffer orbBuffer;
     SpellSlots spellSlots;
     ActionLog actionLog;
@@ -68,6 +97,7 @@ typedef struct {
     // Timer mode
     float roundTimer;
     float maxRoundTimer;
+    float timeElapsed;
     bool isTimedMode;
 
     // Animations & Feedback
@@ -75,8 +105,12 @@ typedef struct {
     OrbAnimState orbAnim;
     InvokePulse invokePulse;
 
-    // Menu selection
+    // Menu selection & state
+    MenuPage menuPage;
     int menuSelected;
+
+    // Game Over Popup Modal
+    GameOverModal gameOver;
 
     // Screen transition
     ScreenTransition transition;
@@ -86,7 +120,7 @@ typedef struct {
 void InitGameContext(GameContext *ctx, const GameAssets *assets, AudioManager *audio);
 
 // Reset gameplay state for new session
-void ResetGameplaySession(GameContext *ctx, bool timed);
+void ResetGameplaySession(GameContext *ctx, GameplayMode mode);
 
 // Screen transition helpers
 void StartTransition(ScreenTransition *trans, GameScreen to);
@@ -103,14 +137,14 @@ void DrawLogoScreen(void);
 
 // Screen Modules: Main Menu
 void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse);
-void DrawMenuScreen(const GameContext *ctx, Vector2 mouse);
+void DrawMenuScreen(GameContext *ctx, Vector2 mouse);
 
 // Screen Modules: Spellbook
 void UpdateSpellbookScreen(GameContext *ctx, float dt, Vector2 mouse);
 void DrawSpellbookScreen(const GameContext *ctx, Vector2 mouse);
 
-// Screen Modules: Gameplay (Practice & Time Attack)
-void UpdateGameplayScreen(GameContext *ctx, float dt);
-void DrawGameplayScreen(const GameContext *ctx);
+// Screen Modules: Gameplay (Practice, Time Attack & Endless)
+void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse);
+void DrawGameplayScreen(GameContext *ctx, Vector2 mouse);
 
 #endif // SCREEN_H

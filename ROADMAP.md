@@ -84,52 +84,55 @@ flowchart TD
   - Immediate skip functionality on `KEY_SPACE`, `KEY_ENTER`, `KEY_ESCAPE`, or mouse click.
   - Seamless auto-transition from `SCREEN_LOGO` to `SCREEN_MENU`.
 - [x] Implement enum-driven screen state machine following [`.agents/skills/raylib-screen-management/SKILL.md`](./.agents/skills/raylib-screen-management/SKILL.md):
-  - Screen enum: `SCREEN_LOGO`, `SCREEN_MENU`, `SCREEN_PRACTICE`, `SCREEN_TIME_ATTACK`, `SCREEN_SPELLBOOK`, `SCREEN_SETTINGS`, `SCREEN_GAME_OVER`.
+  - Screen enum: `SCREEN_LOGO`, `SCREEN_MENU`, `SCREEN_PRACTICE`, `SCREEN_TIME_ATTACK`, `SCREEN_ENDLESS`, `SCREEN_SPELLBOOK`, `SCREEN_GAME_OVER`.
   - Dual-switch update (`Update...Screen()`) and draw (`Draw...Screen()`) loop architecture.
 - [x] Design Dota 2 inspired Title / Main Menu Screen:
   - Invoker hero portrait frame, title banner, and elemental badge styling.
-  - Interactive menu buttons: Practice Mode, Time Attack, Spell Book, Settings, Exit.
-  - Full keyboard navigation (`KEY_UP`, `KEY_DOWN`, `KEY_ENTER`, number hotkeys) and mouse hover/click interaction.
+  - Interactive menu buttons: `PLAY`, `HIGH SCORE`, `SETTINGS`, `HELP`, `QUIT GAME`.
+  - Nested submenus:
+    - **PLAY**: `ENDLESS`, `TIME ATTACK`, `PRACTICE MODE`, `< BACK`.
+    - **HELP**: `SPELL BOOK`, `CONTROLS & BASICS`, `< BACK`.
+  - Full keyboard navigation (`KEY_UP`, `KEY_DOWN`, `KEY_ENTER`, number hotkeys 1-5) and mouse hover/click interaction.
 - [x] Screen transitions and state initialization:
   - Smooth fade-in and fade-out alpha transitions (`ScreenTransition`).
-  - State reset helper `ResetGameplaySession(&ctx, timed)` on mode launch.
+  - State reset helper `ResetGameplaySession(&ctx, mode)` on mode launch.
   - Quick return to menu on `KEY_ESCAPE`.
 - [x] Interactive Spell Book screen (`SCREEN_SPELLBOOK`):
   - Catalog of all 10 spells with icons, elemental recipe badges, and click-to-audition audio playback.
-- [ ] Settings & Configuration screen (`SCREEN_SETTINGS`):
+- [x] Settings & Audio Configuration view:
   - Interactive audio controls with volume sliders and mute toggles:
     - Master Volume (`0.0f` to `1.0f`)
     - SFX Volume (`0.0f` to `1.0f`) & Mute Toggle (orb clicks, invoke sound)
     - Hero Voice Volume (`0.0f` to `1.0f`) & Mute Toggle (Invoker voice lines)
     - Music Volume (`0.0f` to `1.0f`) & Mute Toggle
   - Gameplay preference toggles:
-    - Round duration selector (30s / 60s for Time Attack)
     - Recipe Helper toggle (on-screen 10-spell cheat sheet)
     - Action Feed toggle (on-screen event log)
     - Screen Shake toggle (heavy spell cast feedback)
-  - Display options:
-    - Fullscreen toggle (`ToggleFullscreen()`)
   - Zero-allocation binary file persistence:
     - `SaveSettings(&ctx->settings)` and `LoadSettings(&ctx->settings)` to `settings.dat`.
-    - Fallback defaults if configuration file is missing or corrupted.
 
-### Phase 7: Speed Trainer Mode (Time Attack)
+### Phase 7: Endless Survival & Speed Trainer (Time Attack)
 - [x] Implement random target spell selection.
 - [x] Display target spell banner with icon and name prominently.
-- [ ] Implement round timer (e.g., 30 or 60 seconds countdown).
+- [x] Implement Endless Survival Mode:
+  - 15.0-second starting timer with real-time countdown.
+  - +2.5s time bonus per correct spell invocation (capped at 25s max bank).
+  - Immediate Sudden Death elimination on any miss or incomplete orb buffer.
+- [x] Implement Time Attack round timer (60s countdown).
 - [x] Evaluate invoke accuracy:
   - [x] Correct spell $\rightarrow$ add score, increase combo streak, pick next target.
-  - [x] Incorrect spell $\rightarrow$ reset streak, visual miss feedback.
-- [ ] Create Game Over summary screen showing:
-  - Final Score
-  - Spells per minute (APM)
-  - Average reaction time in milliseconds
-  - Accuracy percentage
+  - [x] Incorrect spell $\rightarrow$ reset streak (Time Attack/Practice) or Sudden Death (Endless).
+- [x] Create Game Over popup modal with official Dota 2 rank badge:
+  - Official Dota 2 Rank evaluation from **Herald** to **Immortal** based on spells invoked.
+  - Summary metrics: Final Score, Total Spells Invoked, Max Strike/Streak, Accuracy %, and Time Survived.
+  - Interactive "TRY AGAIN" and "MAIN MENU" action buttons with keyboard hotkeys.
 
 ### Phase 8: High Scores & v1.0 Polish
-- [ ] Save best scores and personal records to a local file (`scores.dat`).
+- [x] Save best scores and personal records to a local file (`scores.dat`):
+  - Hall of Invocation view displaying personal records for Endless and Time Attack.
+  - Dota 2 Rank tier progression ladder overview.
 - [ ] Add simple particle system for orb trails and invoke burst.
-- [ ] Keybinding customization and help overlay for quick in-game reference.
 - [ ] Release v1.0!
 
 ### Phase 9: WebAssembly & HTML5 Export (Emscripten)
