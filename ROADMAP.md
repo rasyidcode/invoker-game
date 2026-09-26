@@ -79,21 +79,23 @@ flowchart TD
 - [x] Implement pitch variation / randomization on orb clicks for natural audio feel.
 
 ### Phase 6: Screen Management, Splash Screen & Main Menu
-- [ ] Implement procedural animated "Powered by Raylib" Splash Screen (`SCREEN_LOGO`) following [`.agents/skills/raylib-splash-screen/SKILL.md`](./.agents/skills/raylib-splash-screen/SKILL.md):
+- [x] Implement procedural animated "Powered by Raylib" Splash Screen (`SCREEN_LOGO`) following [`.agents/skills/raylib-splash-screen/SKILL.md`](./.agents/skills/raylib-splash-screen/SKILL.md):
   - 4-state procedural animation: blinking cursor $\rightarrow$ expanding border bars $\rightarrow$ typewriter `"raylib"` text $\rightarrow$ alpha fade-out.
   - Immediate skip functionality on `KEY_SPACE`, `KEY_ENTER`, `KEY_ESCAPE`, or mouse click.
-  - Seamless auto-transition from `SCREEN_LOGO` to `SCREEN_TITLE`.
-- [ ] Implement enum-driven screen state machine following [`.agents/skills/raylib-screen-management/SKILL.md`](./.agents/skills/raylib-screen-management/SKILL.md):
-  - Screen enum: `SCREEN_LOGO`, `SCREEN_TITLE` / `SCREEN_MENU`, `SCREEN_PRACTICE`, `SCREEN_TIME_ATTACK`, `SCREEN_GAME_OVER`.
+  - Seamless auto-transition from `SCREEN_LOGO` to `SCREEN_MENU`.
+- [x] Implement enum-driven screen state machine following [`.agents/skills/raylib-screen-management/SKILL.md`](./.agents/skills/raylib-screen-management/SKILL.md):
+  - Screen enum: `SCREEN_LOGO`, `SCREEN_MENU`, `SCREEN_PRACTICE`, `SCREEN_TIME_ATTACK`, `SCREEN_SPELLBOOK`, `SCREEN_GAME_OVER`.
   - Dual-switch update (`Update...Screen()`) and draw (`Draw...Screen()`) loop architecture.
-- [ ] Design Dota 2 inspired Title / Main Menu Screen:
-  - Invoker title banner & logo artwork.
-  - Interactive menu buttons: Practice Mode, Speed Trainer, Quiz Mode, Exit.
-  - Keyboard navigation (`KEY_UP`, `KEY_DOWN`, `KEY_ENTER`) and mouse hover/click interaction.
-- [ ] Screen transitions and state initialization:
-  - Smooth fade-in and fade-out alpha transitions (`transAlpha`).
-  - State reset helper `ResetGameplayState(&gameContext)` on mode launch.
-  - Quick exit / return to menu on `KEY_ESCAPE`.
+- [x] Design Dota 2 inspired Title / Main Menu Screen:
+  - Invoker hero portrait frame, title banner, and elemental badge styling.
+  - Interactive menu buttons: Practice Mode, Time Attack, Spell Book, Exit.
+  - Full keyboard navigation (`KEY_UP`, `KEY_DOWN`, `KEY_ENTER`, number hotkeys) and mouse hover/click interaction.
+- [x] Screen transitions and state initialization:
+  - Smooth fade-in and fade-out alpha transitions (`ScreenTransition`).
+  - State reset helper `ResetGameplaySession(&ctx, timed)` on mode launch.
+  - Quick return to menu on `KEY_ESCAPE`.
+- [x] Interactive Spell Book screen (`SCREEN_SPELLBOOK`):
+  - Catalog of all 10 spells with icons, elemental recipe badges, and click-to-audition audio playback.
 
 ### Phase 7: Speed Trainer Mode (Time Attack)
 - [x] Implement random target spell selection.
