@@ -12,9 +12,10 @@ flowchart TD
     M2 --> M3["Phase 3: Invoke Engine & Action Log"]
     M3 --> M4["Phase 4: HUD & Dota 2 Visual Assets"]
     M4 --> M5["Phase 5: Audio & Dota 2 Sound Effects"]
-    M5 --> M6["Phase 6: Speed Trainer Mode (Time Attack)"]
-    M6 --> M7["Phase 7: High Scores & Polish"]
-    M7 --> M8["Phase 8: WebAssembly Export (Emscripten)"]
+    M5 --> M6["Phase 6: Screen Management & Main Menu"]
+    M6 --> M7["Phase 7: Speed Trainer (Time Attack)"]
+    M7 --> M8["Phase 8: High Scores & Polish"]
+    M8 --> M9["Phase 9: WebAssembly Export (Emscripten)"]
 ```
 
 ---
@@ -66,18 +67,35 @@ flowchart TD
 - [x] Add smooth key-press visual feedback (scaling/pulsing orbs on press).
 
 ### Phase 5: Audio & Authentic Dota 2 Sound Effects
-- [ ] Initialize Raylib audio system (`InitAudioDevice` / `CloseAudioDevice`).
-- [ ] Source and integrate authentic Dota 2 sound effects (`assets/sounds/`):
+- [x] Initialize Raylib audio system (`InitAudioDevice` / `CloseAudioDevice`).
+- [x] Source and integrate authentic Dota 2 sound effects (`assets/sounds/`):
   - Elemental orb invocation sound cues for Quas, Wex, and Exort.
-  - The iconic Dota 2 Invoke ability sound cue.
-  - Spell casting sound effects for Slot 1 (`D`) and Slot 2 (`F`) triggers.
-- [ ] Source and integrate iconic Invoker hero voice responses:
-  - On game start / countdown ("A spell I well remember!", "Fight on, Carl!").
-  - On streak milestones and combo streaks.
-  - On game over / APM rating summary.
-- [ ] Implement pitch variation / randomization on orb clicks for natural audio feel.
+  - The iconic Dota 2 Invoke ability sound cue (`invoke.mp3`).
+  - Spell casting sound effects for Slot 1 (`D`) and Slot 2 (`F`) triggers (all 10 spells).
+- [x] Source and integrate iconic Invoker hero voice responses:
+  - On game start / countdown ("Carl!", "So begins a new age of knowledge.").
+  - On streak milestones (5, 10, 15, 20) and combo streaks ("A spell I well remember!", "Glorious invocation!", "Enlightenment is mine!").
+  - On streak loss / miss ("My mind... unravels!").
+- [x] Implement pitch variation / randomization on orb clicks for natural audio feel.
 
-### Phase 6: Speed Trainer Mode (Time Attack)
+### Phase 6: Screen Management, Splash Screen & Main Menu
+- [ ] Implement procedural animated "Powered by Raylib" Splash Screen (`SCREEN_LOGO`) following [`.agents/skills/raylib-splash-screen/SKILL.md`](./.agents/skills/raylib-splash-screen/SKILL.md):
+  - 4-state procedural animation: blinking cursor $\rightarrow$ expanding border bars $\rightarrow$ typewriter `"raylib"` text $\rightarrow$ alpha fade-out.
+  - Immediate skip functionality on `KEY_SPACE`, `KEY_ENTER`, `KEY_ESCAPE`, or mouse click.
+  - Seamless auto-transition from `SCREEN_LOGO` to `SCREEN_TITLE`.
+- [ ] Implement enum-driven screen state machine following [`.agents/skills/raylib-screen-management/SKILL.md`](./.agents/skills/raylib-screen-management/SKILL.md):
+  - Screen enum: `SCREEN_LOGO`, `SCREEN_TITLE` / `SCREEN_MENU`, `SCREEN_PRACTICE`, `SCREEN_TIME_ATTACK`, `SCREEN_GAME_OVER`.
+  - Dual-switch update (`Update...Screen()`) and draw (`Draw...Screen()`) loop architecture.
+- [ ] Design Dota 2 inspired Title / Main Menu Screen:
+  - Invoker title banner & logo artwork.
+  - Interactive menu buttons: Practice Mode, Speed Trainer, Quiz Mode, Exit.
+  - Keyboard navigation (`KEY_UP`, `KEY_DOWN`, `KEY_ENTER`) and mouse hover/click interaction.
+- [ ] Screen transitions and state initialization:
+  - Smooth fade-in and fade-out alpha transitions (`transAlpha`).
+  - State reset helper `ResetGameplayState(&gameContext)` on mode launch.
+  - Quick exit / return to menu on `KEY_ESCAPE`.
+
+### Phase 7: Speed Trainer Mode (Time Attack)
 - [x] Implement random target spell selection.
 - [x] Display target spell banner with icon and name prominently.
 - [ ] Implement round timer (e.g., 30 or 60 seconds countdown).
@@ -90,13 +108,13 @@ flowchart TD
   - Average reaction time in milliseconds
   - Accuracy percentage
 
-### Phase 7: High Scores & v1.0 Polish
+### Phase 8: High Scores & v1.0 Polish
 - [ ] Save best scores and personal records to a local file (`scores.dat`).
 - [ ] Add simple particle system for orb trails and invoke burst.
 - [ ] Settings/help overlay for keybindings and spell recipe list.
 - [ ] Release v1.0!
 
-### Phase 8: WebAssembly & HTML5 Export (Emscripten)
+### Phase 9: WebAssembly & HTML5 Export (Emscripten)
 - [ ] Configure Emscripten build pipeline (`emcc`) in `Makefile` (e.g. `make web` target).
 - [ ] Adapt game loop for WebAssembly using `#if defined(PLATFORM_WEB)` and `emscripten_set_main_loop`.
 - [ ] Bundle and preload game assets (`--preload-file assets/`) for browser filesystem access.

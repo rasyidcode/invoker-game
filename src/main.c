@@ -4,6 +4,7 @@
 #include <spell.h>
 #include <stdio.h>
 #include "assets.h"
+#include "audio.h"
 #include "log.h"
 
 // Screen configuration
@@ -341,6 +342,11 @@ int main(void) {
     GameAssets assets;
     InitGameAssets(&assets);
 
+    // Initialize Raylib Audio Device & Dota 2 sound effects
+    AudioManager audio;
+    InitAudioManager(&audio);
+    PlayVoiceEvent(&audio, VOICE_START);
+
     // Virtual render texture
     RenderTexture2D target = LoadRenderTexture(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
@@ -393,18 +399,22 @@ int main(void) {
         if (IsKeyPressed(KEY_Q)) {
             PushOrbWithAnim(&orbBuffer, &orbAnim, ORB_QUAS);
             LogOrbPress(&actionLog, ORB_QUAS);
+            PlayOrbSound(&audio, ORB_QUAS);
         }
         if (IsKeyPressed(KEY_W)) {
             PushOrbWithAnim(&orbBuffer, &orbAnim, ORB_WEX);
             LogOrbPress(&actionLog, ORB_WEX);
+            PlayOrbSound(&audio, ORB_WEX);
         }
         if (IsKeyPressed(KEY_E)) {
             PushOrbWithAnim(&orbBuffer, &orbAnim, ORB_EXORT);
             LogOrbPress(&actionLog, ORB_EXORT);
+            PlayOrbSound(&audio, ORB_EXORT);
         }
         if (IsKeyPressed(KEY_R)) {
             invokePulse.timer = 0.35f;
             invokePulse.maxDuration = 0.35f;
+            PlayInvokeSound(&audio);
 
             if (orbBuffer.count < MAX_ACTIVE_ORBS) {
                 feedback.timer = 0.85f;
@@ -412,6 +422,7 @@ int main(void) {
                 feedback.color = (Color){255, 180, 50, 255};
                 snprintf(feedback.text, sizeof(feedback.text), "NEED 3 ORBS");
                 LogSpellInvoke(&actionLog, SPELL_NONE, &orbBuffer, false);
+                PlayQuizFeedbackSound(&audio, false);
             } else {
                 SpellId invokedSpell = ResolveSpell(&orbBuffer);
 
@@ -426,6 +437,20 @@ int main(void) {
                     feedback.color = (Color){50, 240, 100, 255};
                     snprintf(feedback.text, sizeof(feedback.text), "+%d", points);
 
+                    PlayQuizFeedbackSound(&audio, true);
+                    PlaySpellSound(&audio, invokedSpell);
+
+                    // Streak milestone voice lines
+                    if (streak == 5) {
+                        PlayVoiceEvent(&audio, VOICE_STREAK_5);
+                    } else if (streak == 10) {
+                        PlayVoiceEvent(&audio, VOICE_STREAK_10);
+                    } else if (streak == 15) {
+                        PlayVoiceEvent(&audio, VOICE_STREAK_15);
+                    } else if (streak == 20) {
+                        PlayVoiceEvent(&audio, VOICE_STREAK_20);
+                    }
+
                     SpellId nextSpell;
                     do {
                         nextSpell = (SpellId)GetRandomValue(0, SPELL_COUNT - 1);
@@ -433,15 +458,38 @@ int main(void) {
                     targetSpell = nextSpell;
                 } else {
                     // MISS
+                    if (streak >= 5) {
+                        PlayVoiceEvent(&audio, VOICE_MISS);
+                    }
                     streak = 0;
                     feedback.timer = 0.85f;
                     feedback.maxDuration = 0.85f;
                     feedback.color = (Color){255, 65, 65, 255};
                     snprintf(feedback.text, sizeof(feedback.text), "MISS!");
+
+                    PlayQuizFeedbackSound(&audio, false);
                 }
 
                 bool changed = InvokeSpell(&spellSlots, &orbBuffer);
                 LogSpellInvoke(&actionLog, invokedSpell, &orbBuffer, changed);
+            }
+        }
+        if (IsKeyPressed(KEY_D) && spellSlots.slot1 != SPELL_NONE) {
+            PlaySpellSound(&audio, spellSlots.slot1);
+            const SpellInfo *info = GetSpellInfo(spellSlots.slot1);
+            if (info) {
+                char msg[64];
+                snprintf(msg, sizeof(msg), "Cast [D]: %s", info->name);
+                AddLogEntry(&actionLog, msg, info->color);
+            }
+        }
+        if (IsKeyPressed(KEY_F) && spellSlots.slot2 != SPELL_NONE) {
+            PlaySpellSound(&audio, spellSlots.slot2);
+            const SpellInfo *info = GetSpellInfo(spellSlots.slot2);
+            if (info) {
+                char msg[64];
+                snprintf(msg, sizeof(msg), "Cast [F]: %s", info->name);
+                AddLogEntry(&actionLog, msg, info->color);
             }
         }
 
@@ -486,6 +534,7 @@ int main(void) {
     }
     // clang-format on
 
+    UnloadAudioManager(&audio);
     UnloadGameAssets(&assets);
     UnloadRenderTexture(target);
     CloseWindow();
