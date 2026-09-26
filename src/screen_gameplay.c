@@ -39,6 +39,9 @@ void ResetGameplaySession(GameContext *ctx, GameplayMode mode) {
         ctx->orbAnim.flashAlpha[i] = 0.0f;
     }
     ctx->invokePulse = (InvokePulse){0};
+    ClearParticles(&ctx->particles);
+    ctx->screenShakeTimer = 0.0f;
+    ctx->screenShakeIntensity = 0.0f;
 
     ctx->targetSpell = (SpellId)GetRandomValue(0, SPELL_COUNT - 1);
 }
@@ -626,6 +629,24 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
     }
 
     UpdateActionLog(&ctx->actionLog, dt);
+    UpdateParticleSystem(&ctx->particles, dt);
+
+    if (ctx->screenShakeTimer > 0.0f) {
+        ctx->screenShakeTimer -= dt;
+        if (ctx->screenShakeTimer < 0.0f) ctx->screenShakeTimer = 0.0f;
+    }
+
+    // Subtle ambient sparkles orbiting around active floating orbs
+    int orbSpacing = 153;
+    int baseY = 620;
+    float time = (float)GetTime();
+    for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
+        if (ctx->orbBuffer.orbs[i] != ORB_NONE) {
+            float posX = (float)(VIRTUAL_WIDTH / 2 + (i - 1) * orbSpacing);
+            float bobOffset = sinf(time * 3.5f + (float)i * 2.0f) * 6.0f;
+            EmitOrbAmbient(&ctx->particles, (Vector2){posX, (float)baseY + bobOffset}, ctx->orbBuffer.orbs[i]);
+        }
+    }
 
     for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
         ctx->orbAnim.scale[i] += (1.0f - ctx->orbAnim.scale[i]) * 14.0f * dt;
@@ -638,20 +659,29 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
         if (ctx->invokePulse.timer < 0.0f) ctx->invokePulse.timer = 0.0f;
     }
 
+    int abilityStartX = (VIRTUAL_WIDTH - ((100 * 6) + (10 * 5))) / 2;
+    float rightOrbX = (float)(VIRTUAL_WIDTH / 2 + 153);
+
     if (IsKeyPressed(KEY_Q)) {
         PushOrbWithAnim(&ctx->orbBuffer, &ctx->orbAnim, ORB_QUAS);
         LogOrbPress(&ctx->actionLog, ORB_QUAS);
         PlayOrbSound(ctx->audio, ORB_QUAS);
+        EmitOrbParticles(&ctx->particles, (Vector2){rightOrbX, 620.0f}, ORB_QUAS, 14);
+        EmitOrbParticles(&ctx->particles, (Vector2){(float)(abilityStartX + 50), 820.0f}, ORB_QUAS, 6);
     }
     if (IsKeyPressed(KEY_W)) {
         PushOrbWithAnim(&ctx->orbBuffer, &ctx->orbAnim, ORB_WEX);
         LogOrbPress(&ctx->actionLog, ORB_WEX);
         PlayOrbSound(ctx->audio, ORB_WEX);
+        EmitOrbParticles(&ctx->particles, (Vector2){rightOrbX, 620.0f}, ORB_WEX, 16);
+        EmitOrbParticles(&ctx->particles, (Vector2){(float)(abilityStartX + 160), 820.0f}, ORB_WEX, 6);
     }
     if (IsKeyPressed(KEY_E)) {
         PushOrbWithAnim(&ctx->orbBuffer, &ctx->orbAnim, ORB_EXORT);
         LogOrbPress(&ctx->actionLog, ORB_EXORT);
         PlayOrbSound(ctx->audio, ORB_EXORT);
+        EmitOrbParticles(&ctx->particles, (Vector2){rightOrbX, 620.0f}, ORB_EXORT, 14);
+        EmitOrbParticles(&ctx->particles, (Vector2){(float)(abilityStartX + 270), 820.0f}, ORB_EXORT, 6);
     }
 
     if (IsKeyPressed(KEY_R)) {
@@ -659,7 +689,11 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
         ctx->invokePulse.maxDuration = 0.35f;
         PlayInvokeSound(ctx->audio);
 
+        Vector2 invokeCenter = { (float)(abilityStartX + 550 + 50), 820.0f };
+        Vector2 cardCenter = { (float)(VIRTUAL_WIDTH / 2), 350.0f };
+
         if (ctx->orbBuffer.count < MAX_ACTIVE_ORBS) {
+            EmitInvokeBurst(&ctx->particles, invokeCenter, (Color){255, 180, 50, 255}, 12);
             if (ctx->gameMode == GAME_MODE_ENDLESS) {
                 // In Endless, incomplete orbs counts as Miss -> Sudden Death!
                 ctx->totalAttempted++;
@@ -689,6 +723,13 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
 
                 int points = 100 * ctx->streak;
                 ctx->score += points;
+
+                const SpellInfo *sInfo = GetSpellInfo(invokedSpell);
+                Color sColor = sInfo ? sInfo->color : GOLD;
+                EmitInvokeBurst(&ctx->particles, invokeCenter, sColor, 24);
+                EmitSpellSuccessBurst(&ctx->particles, cardCenter, sColor);
+                ctx->screenShakeTimer = 0.35f;
+                ctx->screenShakeIntensity = 10.0f;
 
                 if (ctx->gameMode == GAME_MODE_ENDLESS) {
                     // Endless Mode: grant +2.5s time bonus!
@@ -725,6 +766,9 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
                 ctx->targetSpell = nextSpell;
             } else {
                 ctx->totalAttempted++;
+                EmitInvokeBurst(&ctx->particles, invokeCenter, (Color){255, 65, 65, 255}, 16);
+                ctx->screenShakeTimer = 0.2f;
+                ctx->screenShakeIntensity = 6.0f;
 
                 if (ctx->gameMode == GAME_MODE_ENDLESS) {
                     // Sudden Death: any miss ends the game immediately!
@@ -765,6 +809,9 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
             char msg[64];
             snprintf(msg, sizeof(msg), "Cast [D]: %s", info->name);
             AddLogEntry(&ctx->actionLog, msg, info->color);
+            EmitInvokeBurst(&ctx->particles, (Vector2){(float)(abilityStartX + 330 + 50), 820.0f}, info->color, 16);
+            ctx->screenShakeTimer = 0.22f;
+            ctx->screenShakeIntensity = 7.0f;
         }
     }
     if (IsKeyPressed(KEY_F) && ctx->spellSlots.slot2 != SPELL_NONE) {
@@ -774,6 +821,9 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
             char msg[64];
             snprintf(msg, sizeof(msg), "Cast [F]: %s", info->name);
             AddLogEntry(&ctx->actionLog, msg, info->color);
+            EmitInvokeBurst(&ctx->particles, (Vector2){(float)(abilityStartX + 440 + 50), 820.0f}, info->color, 16);
+            ctx->screenShakeTimer = 0.22f;
+            ctx->screenShakeIntensity = 7.0f;
         }
     }
 }
@@ -786,6 +836,10 @@ void DrawGameplayScreen(GameContext *ctx, Vector2 mouse) {
     DrawTitle(ctx->gameMode, ctx->roundTimer);
     DrawScoreBar(ctx->score, ctx->streak);
     DrawTargetSpellCard(ctx->targetSpell, &ctx->feedback, ctx->assets);
+
+    // Render elemental particle pool in 2.5D layer
+    DrawParticleSystem(&ctx->particles);
+
     DrawOrbs(&ctx->orbBuffer, ctx->assets, &ctx->orbAnim);
     DrawAbilitySlots(&ctx->spellSlots, ctx->assets, &ctx->invokePulse);
 

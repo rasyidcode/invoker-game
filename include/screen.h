@@ -8,6 +8,7 @@
 #include "config.h"
 #include "log.h"
 #include "orb.h"
+#include "particles.h"
 #include "spell.h"
 
 #define VIRTUAL_WIDTH 720
@@ -104,6 +105,9 @@ typedef struct {
     QuizFeedback feedback;
     OrbAnimState orbAnim;
     InvokePulse invokePulse;
+    ParticleSystem particles;
+    float screenShakeTimer;
+    float screenShakeIntensity;
 
     // Menu selection & state
     MenuPage menuPage;

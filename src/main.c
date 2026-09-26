@@ -109,11 +109,19 @@ int main(void) {
                 -(float)target.texture.height // Negative height because Raylib inverted Y
             };
 
+            float shakeOffsetX = 0.0f;
+            float shakeOffsetY = 0.0f;
+            if (ctx.screenShakeTimer > 0.0f && ctx.settings.screenShake) {
+                float intensity = ctx.screenShakeIntensity * (ctx.screenShakeTimer / 0.35f);
+                shakeOffsetX = ((float)GetRandomValue(-100, 100) / 100.0f) * intensity;
+                shakeOffsetY = ((float)GetRandomValue(-100, 100) / 100.0f) * intensity;
+            }
+
             Rectangle destRec = {
-                (GetScreenWidth() - (VIRTUAL_WIDTH * scale)) * 0.5f,
-                (GetScreenHeight() - (VIRTUAL_HEIGHT * scale)) * 0.5f,
-                VIRTUAL_WIDTH * scale,
-                VIRTUAL_HEIGHT * scale
+                ((float)GetScreenWidth() - ((float)VIRTUAL_WIDTH * scale)) * 0.5f + shakeOffsetX,
+                ((float)GetScreenHeight() - ((float)VIRTUAL_HEIGHT * scale)) * 0.5f + shakeOffsetY,
+                (float)VIRTUAL_WIDTH * scale,
+                (float)VIRTUAL_HEIGHT * scale
             };
 
             DrawTexturePro(target.texture, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);

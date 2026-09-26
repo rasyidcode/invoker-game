@@ -128,11 +128,18 @@ flowchart TD
   - Summary metrics: Final Score, Total Spells Invoked, Max Strike/Streak, Accuracy %, and Time Survived.
   - Interactive "TRY AGAIN" and "MAIN MENU" action buttons with keyboard hotkeys.
 
-### Phase 8: High Scores & v1.0 Polish
+### Phase 8: High Scores, Visual Effects & v1.0 Polish
 - [x] Save best scores and personal records to a local file (`scores.dat`):
   - Hall of Invocation view displaying personal records for Endless and Time Attack.
   - Dota 2 Rank tier progression ladder overview.
-- [ ] Add simple particle system for orb trails and invoke burst.
+- [x] Implement zero-allocation elemental particle system and dynamic screen shake:
+  - Fixed-pool particle system (`ParticleSystem`, 256 particles) with zero heap allocation in game loop.
+  - Quas ice crystals (cyan drifting flakes with gravity).
+  - Wex storm sparks (electric violet high-speed erratic bursts).
+  - Exort fire embers (amber/orange rising buoyant sparks).
+  - 360-degree radial ring bursts on spell invocation (`R`) and cast keys (`D` & `F`).
+  - Celebratory spell success bursts over target spell card on correct invocation.
+  - Dynamic screen shake on heavy spells and misses, configurable via Settings toggle.
 - [ ] Release v1.0!
 
 ### Phase 9: WebAssembly & HTML5 Export (Emscripten)
