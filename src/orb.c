@@ -13,14 +13,13 @@ void PushOrbBuffer(OrbBuffer *buffer, OrbType orb) {
     if (!buffer || orb == ORB_NONE)
         return;
 
+    // Shift elements to the left (discard oldest at index 0, new orb enters at index 2)
+    buffer->orbs[0] = buffer->orbs[1];
+    buffer->orbs[1] = buffer->orbs[2];
+    buffer->orbs[2] = orb;
+
     if (buffer->count < MAX_ACTIVE_ORBS) {
-        buffer->orbs[buffer->count] = orb;
         buffer->count++;
-    } else {
-        // shift element to the left (discard oldest at index 0)
-        buffer->orbs[0] = buffer->orbs[1];
-        buffer->orbs[1] = buffer->orbs[2];
-        buffer->orbs[2] = orb;
     }
 }
 
