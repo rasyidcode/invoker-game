@@ -3,6 +3,7 @@
 #include <raylib.h>
 #include <spell.h>
 #include <stdio.h>
+#include "assets.h"
 
 // Screen configuration
 #define VIRTUAL_WIDTH 720
@@ -57,7 +58,7 @@ static void DrawScoreBar(int score, int streak) {
     DrawText(streakText, cardX + cardW - streakW, barY, 20, streakColor);
 }
 
-static void DrawTargetSpellCard(SpellId targetSpell, const QuizFeedback *feedback) {
+static void DrawTargetSpellCard(SpellId targetSpell, const QuizFeedback *feedback, const GameAssets *assets) {
     const SpellInfo *info = GetSpellInfo(targetSpell);
     if (!info)
         return;
@@ -95,29 +96,48 @@ static void DrawTargetSpellCard(SpellId targetSpell, const QuizFeedback *feedbac
     int boxSize = 150;
     int boxX = centerX - (boxSize / 2);
     int boxY = cardY + 85;
-    DrawRectangle(boxX, boxY, boxSize, boxSize, (Color){15, 17, 22, 255});
+
+    // Draw authentic texture if loaded, otherwise fallback to procedural box
+    Texture2D targetTex = GetSpellTexture(assets, targetSpell);
+    if (targetTex.id > 0) {
+        DrawTexturePro(targetTex,
+                       (Rectangle){0, 0, (float)targetTex.width, (float)targetTex.height},
+                       (Rectangle){(float)boxX, (float)boxY, (float)boxSize, (float)boxSize},
+                       (Vector2){0, 0}, 0.0f, WHITE);
+        // Feedback tint overlay over texture
+        if (fbAlpha > 0.0f) {
+            DrawRectangle(boxX, boxY, boxSize, boxSize, ColorAlpha(feedback->color, fbAlpha * 0.45f));
+        }
+    } else {
+        DrawRectangle(boxX, boxY, boxSize, boxSize, (Color){15, 17, 22, 255});
+        if (fbAlpha <= 0.0f) {
+            int qFs = 64;
+            int qW = MeasureText("?", qFs);
+            DrawText("?", centerX - (qW / 2), boxY + (boxSize / 2) - (qFs / 2) - 4,
+                     qFs, DARKGRAY);
+        }
+    }
 
     Color boxBorder = (fbAlpha > 0.0f) ? feedback->color : info->color;
     DrawRectangleLines(boxX, boxY, boxSize, boxSize, boxBorder);
     DrawRectangle(boxX, boxY + boxSize - 6, boxSize, 6, boxBorder);
 
     if (fbAlpha > 0.0f) {
-        int fbFs = 30;
+        int fbFs = 32;
         int fbW = MeasureText(feedback->text, fbFs);
-        Color fbColor = ColorAlpha(feedback->color, fbAlpha);
-        int floatY = (int)((1.0f - fbAlpha) * 12.0f);
+        Color fbColor = ColorAlpha(RAYWHITE, fbAlpha);
+        int floatY = (int)((1.0f - fbAlpha) * 14.0f);
+        // Shadow for feedback text
+        DrawText(feedback->text, centerX - (fbW / 2) + 2,
+                 boxY + (boxSize / 2) - (fbFs / 2) - floatY + 2, fbFs,
+                 (Color){0, 0, 0, (unsigned char)(fbAlpha * 220)});
         DrawText(feedback->text, centerX - (fbW / 2),
                  boxY + (boxSize / 2) - (fbFs / 2) - floatY, fbFs, fbColor);
-    } else {
-        int qFs = 64;
-        int qW = MeasureText("?", qFs);
-        DrawText("?", centerX - (qW / 2), boxY + (boxSize / 2) - (qFs / 2) - 4,
-                 qFs, DARKGRAY);
     }
 }
 
-// Helper to draw the orbs
-static void DrawOrbs(OrbBuffer *orbBuffer) {
+// Helper to draw the active orbs using authentic circular assets
+static void DrawOrbs(OrbBuffer *orbBuffer, const GameAssets *assets) {
     int centerX = VIRTUAL_WIDTH / 2;
     int startY = VIRTUAL_HEIGHT / 2;
     int orbRadius = 64;
@@ -125,23 +145,44 @@ static void DrawOrbs(OrbBuffer *orbBuffer) {
 
     for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
         int posX = centerX + (i - 1) * orbSpacing;
-        Color orbColor = GetOrbColor(orbBuffer->orbs[i]);
+        OrbType orb = orbBuffer->orbs[i];
+        Color orbColor = GetOrbColor(orb);
 
-        // Outer ring
-        DrawCircle(posX, startY, orbRadius + 4, (Color){30, 34, 42, 255});
-        // Inner orb
-        DrawCircle(posX, startY, orbRadius, orbColor);
+        if (orb != ORB_NONE) {
+            Texture2D tex = GetCircularOrbTexture(assets, orb);
+            if (tex.id > 0) {
+                // 1. Draw circular texture centered at (posX, startY)
+                Rectangle src = {0.0f, 0.0f, (float)tex.width, (float)tex.height};
+                Rectangle dest = {(float)(posX - orbRadius), (float)(startY - orbRadius),
+                                  (float)(orbRadius * 2), (float)(orbRadius * 2)};
+                DrawTexturePro(tex, src, dest, (Vector2){0, 0}, 0.0f, WHITE);
+
+                // 2. Layered glowing elemental rim
+                DrawCircleLines(posX, startY, orbRadius + 1, orbColor);
+                DrawCircleLines(posX, startY, orbRadius + 2, ColorAlpha(orbColor, 0.7f));
+                DrawCircleLines(posX, startY, orbRadius + 4, ColorAlpha(orbColor, 0.3f));
+            } else {
+                // Procedural fallback
+                DrawCircle(posX, startY, orbRadius + 4, (Color){30, 34, 42, 255});
+                DrawCircle(posX, startY, orbRadius, orbColor);
+            }
+        } else {
+            // Empty orb socket
+            DrawCircle(posX, startY, orbRadius, (Color){20, 23, 30, 255});
+            DrawCircleLines(posX, startY, orbRadius, (Color){45, 50, 62, 255});
+        }
 
         // Orb element label
-        const char *label = GetOrbName(orbBuffer->orbs[i]);
+        const char *label = GetOrbName(orb);
         int textWidth = MeasureText(label, 18);
-        DrawText(label, posX - (textWidth / 2), startY + orbRadius + 12, 18,
-                 RAYWHITE);
+        Color textColor = (orb != ORB_NONE) ? RAYWHITE : DARKGRAY;
+        DrawText(label, posX - (textWidth / 2), startY + orbRadius + 14, 18,
+                 textColor);
     }
 }
 
 // Helper to draw an invoked spell slot box
-static void DrawAbilitySlots(SpellSlots *spellSlots) {
+static void DrawAbilitySlots(SpellSlots *spellSlots, const GameAssets *assets) {
     int centerX = VIRTUAL_WIDTH / 2;
 
     int slotCount = 6;
@@ -159,19 +200,26 @@ static void DrawAbilitySlots(SpellSlots *spellSlots) {
         const char *name;
         Color color;
         bool isActive;
+        Texture2D icon;
     } AbilitySlotUI;
 
     AbilitySlotUI slots[6] = {
-        (AbilitySlotUI){"Q", "Quas", (Color){0, 210, 255, 255}, true},
-        (AbilitySlotUI){"W", "Wex", (Color){224, 64, 251, 255}, true},
-        (AbilitySlotUI){"E", "Exort", (Color){255, 87, 34, 255}, true},
+        (AbilitySlotUI){"Q", "Quas", (Color){0, 210, 255, 255}, true,
+                        GetOrbTexture(assets, ORB_QUAS)},
+        (AbilitySlotUI){"W", "Wex", (Color){224, 64, 251, 255}, true,
+                        GetOrbTexture(assets, ORB_WEX)},
+        (AbilitySlotUI){"E", "Exort", (Color){255, 87, 34, 255}, true,
+                        GetOrbTexture(assets, ORB_EXORT)},
         (AbilitySlotUI){"D", info1 ? info1->name : "Empty",
                         info1 ? info1->color : (Color){45, 50, 60, 255},
-                        info1 != NULL},
+                        info1 != NULL,
+                        GetSpellTexture(assets, spellSlots->slot1)},
         (AbilitySlotUI){"F", info2 ? info2->name : "Empty",
                         info2 ? info2->color : (Color){45, 50, 60, 255},
-                        info2 != NULL},
-        (AbilitySlotUI){"R", "Invoke", (Color){186, 85, 211, 255}, true},
+                        info2 != NULL,
+                        GetSpellTexture(assets, spellSlots->slot2)},
+        (AbilitySlotUI){"R", "Invoke", (Color){186, 85, 211, 255}, true,
+                        GetInvokeTexture(assets)},
     };
 
     // Calculate total row width (all boxes + interior gaps only)
@@ -184,10 +232,25 @@ static void DrawAbilitySlots(SpellSlots *spellSlots) {
     for (int i = 0; i < 6; i++) {
         int posX = startX + i * (slotSize + slotGap);
 
-        // Background box
-        Color bgColor = slots[i].isActive ? (Color){25, 28, 36, 255}
-                                          : (Color){18, 20, 25, 255};
-        DrawRectangle(posX, posY, slotSize, slotSize, bgColor);
+        // Draw authentic icon if available
+        if (slots[i].icon.id > 0) {
+            DrawTexturePro(slots[i].icon,
+                           (Rectangle){0, 0, (float)slots[i].icon.width, (float)slots[i].icon.height},
+                           (Rectangle){(float)posX, (float)posY, (float)slotSize, (float)slotSize},
+                           (Vector2){0, 0}, 0.0f, WHITE);
+        } else {
+            // Background box fallback
+            Color bgColor = slots[i].isActive ? (Color){25, 28, 36, 255}
+                                              : (Color){18, 20, 25, 255};
+            DrawRectangle(posX, posY, slotSize, slotSize, bgColor);
+
+            // Ability name fallback
+            int nameFs = 12;
+            int textW = MeasureText(slots[i].name, nameFs);
+            Color textColor = slots[i].isActive ? RAYWHITE : DARKGRAY;
+            DrawText(slots[i].name, posX + (slotSize - textW) / 2,
+                     posY + (slotSize / 2) - 6, nameFs, textColor);
+        }
 
         // Border (accent color if active, subtle dark gray if empty)
         Color borderColor =
@@ -200,17 +263,12 @@ static void DrawAbilitySlots(SpellSlots *spellSlots) {
                           slots[i].color);
         }
 
-        // Hotkey badge bottom-right
-        DrawText(slots[i].hotkey, posX + slotSize - 18, posY + slotSize - 26,
-                 16, GOLD);
-
-        // Ability name (font size 12 fits longer names like "Deafining
-        // Blast")
-        int nameFs = 12;
-        int textW = MeasureText(slots[i].name, nameFs);
-        Color textColor = slots[i].isActive ? RAYWHITE : DARKGRAY;
-        DrawText(slots[i].name, posX + (slotSize - textW) / 2,
-                 posY + (slotSize / 2) - 6, nameFs, textColor);
+        // Hotkey badge bottom-right with dark translucent backing for readability over icons
+        int hkFs = 16;
+        int hkW = MeasureText(slots[i].hotkey, hkFs);
+        DrawRectangle(posX + slotSize - hkW - 8, posY + slotSize - 26, hkW + 6, 20, (Color){0, 0, 0, 190});
+        DrawText(slots[i].hotkey, posX + slotSize - hkW - 5, posY + slotSize - 24,
+                 hkFs, GOLD);
     }
 }
 
@@ -223,6 +281,10 @@ int main(void) {
 
     // Dota 2 inspired dark background color: #121418
     Color bgColor = (Color){18, 20, 24, 255};
+
+    // Load Dota 2 icons and visual assets
+    GameAssets assets;
+    InitGameAssets(&assets);
 
     // Virtual render texture
     RenderTexture2D target = LoadRenderTexture(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
@@ -303,9 +365,9 @@ int main(void) {
 
             DrawTitle();
             DrawScoreBar(score, streak);
-            DrawTargetSpellCard(targetSpell, &feedback);
-            DrawOrbs(&orbBuffer);
-            DrawAbilitySlots(&spellSlots);
+            DrawTargetSpellCard(targetSpell, &feedback, &assets);
+            DrawOrbs(&orbBuffer, &assets);
+            DrawAbilitySlots(&spellSlots, &assets);
         EndTextureMode();
 
         // Draw
@@ -331,6 +393,7 @@ int main(void) {
     }
     // clang-format on
 
+    UnloadGameAssets(&assets);
     UnloadRenderTexture(target);
     CloseWindow();
 

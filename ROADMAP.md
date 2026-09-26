@@ -10,10 +10,11 @@ For architectural design, game mechanics specifications, and data structures, se
 flowchart TD
     M1["Phase 1: Raylib Setup & Window"] --> M2["Phase 2: Orb Buffer (Q,W,E)"]
     M2 --> M3["Phase 3: Invoke Engine & Action Log"]
-    M3 --> M4["Phase 4: HUD & UI Drawing"]
-    M4 --> M5["Phase 5: Audio & Sound Effects"]
+    M3 --> M4["Phase 4: HUD & Dota 2 Visual Assets"]
+    M4 --> M5["Phase 5: Audio & Dota 2 Sound Effects"]
     M5 --> M6["Phase 6: Speed Trainer Mode (Time Attack)"]
     M6 --> M7["Phase 7: High Scores & Polish"]
+    M7 --> M8["Phase 8: WebAssembly Export (Emscripten)"]
 ```
 
 ---
@@ -48,21 +49,33 @@ flowchart TD
   - [ ] Timed entry decay / smooth alpha fade-out over time (`lifetime / max_lifetime`).
 - [x] Render invoked spell slot badges (`D`, `F`) with active spell names and border colors.
 
-### Phase 4: UI & HUD Aesthetics
+### Phase 4: UI, HUD & Real Dota 2 Visual Assets
 - [x] Design Dota 2 inspired bottom HUD bar:
   - [x] 3 Orb indicator circles (Cyan, Violet, Orange).
   - [x] Orb key label badges (`Q`, `W`, `E`).
   - [x] Invoke button (`R`) with ready state indicator.
   - [x] Two active spell slot boxes (`D`, `F`) displaying spell names and colors.
+- [x] Source and prepare authentic Dota 2 icon assets (`assets/icons/`):
+  - [x] 10 official spell icons (`cold_snap.png`, `sun_strike.png`, `chaos_meteor.png`, etc.).
+  - [x] 3 elemental orb icons (`quas.png`, `wex.png`, `exort.png`) and `invoke.png`.
+  - [x] Invoker hero portrait / avatar badge.
+- [x] Implement Raylib texture loading and rendering pipeline (`LoadTexture` / `DrawTexturePro`).
+- [x] Display authentic spell icons in active slots (`D`, `F`) and target prompt banner.
+- [x] Maintain procedural fallback drawing when icon assets are absent.
 - [ ] Integrate On-Screen Action Feed into HUD layout.
-- [ ] Add texture loading support (`assets/icons/`) with fallback procedural drawing when assets are absent.
 - [ ] Add smooth key-press visual feedback (scaling/pulsing orbs on press).
 
-### Phase 5: Audio & Sound Effects
+### Phase 5: Audio & Authentic Dota 2 Sound Effects
 - [ ] Initialize Raylib audio system (`InitAudioDevice` / `CloseAudioDevice`).
-- [ ] Implement click/elemental audio for Quas, Wex, Exort.
-- [ ] Add Invoke activation sound.
-- [ ] Add casting audio for `D` and `F` triggers.
+- [ ] Source and integrate authentic Dota 2 sound effects (`assets/sounds/`):
+  - Elemental orb invocation sound cues for Quas, Wex, and Exort.
+  - The iconic Dota 2 Invoke ability sound cue.
+  - Spell casting sound effects for Slot 1 (`D`) and Slot 2 (`F`) triggers.
+- [ ] Source and integrate iconic Invoker hero voice responses:
+  - On game start / countdown ("A spell I well remember!", "Fight on, Carl!").
+  - On streak milestones and combo streaks.
+  - On game over / APM rating summary.
+- [ ] Implement pitch variation / randomization on orb clicks for natural audio feel.
 
 ### Phase 6: Speed Trainer Mode (Time Attack)
 - [x] Implement random target spell selection.
@@ -82,3 +95,11 @@ flowchart TD
 - [ ] Add simple particle system for orb trails and invoke burst.
 - [ ] Settings/help overlay for keybindings and spell recipe list.
 - [ ] Release v1.0!
+
+### Phase 8: WebAssembly & HTML5 Export (Emscripten)
+- [ ] Configure Emscripten build pipeline (`emcc`) in `Makefile` (e.g. `make web` target).
+- [ ] Adapt game loop for WebAssembly using `#if defined(PLATFORM_WEB)` and `emscripten_set_main_loop`.
+- [ ] Bundle and preload game assets (`--preload-file assets/`) for browser filesystem access.
+- [ ] Provide a responsive HTML5 shell template (`shell.html`) with canvas scaling and key event capturing.
+- [ ] Test in web browsers via local test server (`python3 -m http.server`).
+- [ ] Deploy playable web version to GitHub Pages / itch.io.
