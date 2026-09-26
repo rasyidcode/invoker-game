@@ -103,6 +103,8 @@ sudo dnf install gcc make raylib-devel mesa-libGL-devel libX11-devel
 
 ### Build & Run
 
+#### Desktop (Linux x86_64)
+
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/rasyidcode/invoker-game.git
@@ -125,6 +127,24 @@ sudo dnf install gcc make raylib-devel mesa-libGL-devel libX11-devel
    ```bash
    make clean
    ```
+
+#### WebAssembly & HTML5 (Web Browser)
+
+1. **Prerequisites:**
+   Ensure Emscripten SDK (`emsdk`) is installed, and a WebAssembly-compiled Raylib archive (`libraylib.a`) is available (default paths configured in `Makefile`).
+
+2. **Compile to WebAssembly:**
+   ```bash
+   make web
+   ```
+   Generates `build/web/index.html`, `index.js`, `index.wasm`, and packages all game sounds and textures into `index.data`.
+
+3. **Run local web server:**
+   ```bash
+   make run-web
+   ```
+   Launches a local HTTP server at `http://localhost:8080`.
+
 
 ---
 

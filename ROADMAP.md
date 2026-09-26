@@ -143,9 +143,11 @@ flowchart TD
 - [x] Release v1.0!
 
 ### Phase 9: WebAssembly & HTML5 Export (Emscripten)
-- [ ] Configure Emscripten build pipeline (`emcc`) in `Makefile` (e.g. `make web` target).
-- [ ] Adapt game loop for WebAssembly using `#if defined(PLATFORM_WEB)` and `emscripten_set_main_loop`.
-- [ ] Bundle and preload game assets (`--preload-file assets/`) for browser filesystem access.
-- [ ] Provide a responsive HTML5 shell template (`shell.html`) with canvas scaling and key event capturing.
-- [ ] Test in web browsers via local test server (`python3 -m http.server`).
-- [ ] Deploy playable web version to GitHub Pages / itch.io.
+- [x] Configure Emscripten build pipeline (`emcc`) in `Makefile` (`make web`, `make run-web`).
+- [x] Adapt game loop for WebAssembly using `#if defined(PLATFORM_WEB)` and `emscripten_set_main_loop`.
+- [x] Bundle and preload game assets (`--preload-file assets`) for browser virtual filesystem access.
+- [x] Provide a responsive HTML5 shell template (`src/shell.html`) with 9:16 aspect ratio canvas scaling and key event capturing.
+- [x] Test in web browsers via local test server (`make run-web`).
+- [x] Create reusable project skill `.agents/skills/raylib-web-assembly/SKILL.md` for Raylib WASM export patterns.
+- [x] Deployable WebAssembly package in `build/web/` ready for itch.io / GitHub Pages.
+
