@@ -109,16 +109,16 @@ void DrawActionLog(const ActionLog *log, int centerX, int startY, int width, int
     if (!log) return;
 
     int panelX = centerX - (width / 2);
-    int headerH = 32;
+    int headerH = 40;
 
     // Panel background & subtle border
     DrawRectangle(panelX, startY, width, height, (Color){16, 18, 24, 210});
     DrawRectangleLines(panelX, startY, width, height, (Color){40, 45, 58, 255});
 
-    // Panel Header
+    // Panel Header (bigger title)
     const char *header = "ACTION FEED";
-    int headerFs = 13;
-    DrawText(header, panelX + 16, startY + 10, headerFs, (Color){160, 165, 180, 255});
+    int headerFs = 18;
+    DrawText(header, panelX + 18, startY + 11, headerFs, (Color){200, 205, 220, 255});
 
     // Count active entries
     int activeCount = 0;
@@ -130,8 +130,9 @@ void DrawActionLog(const ActionLog *log, int centerX, int startY, int width, int
 
     // Capacity tag on right side of header
     const char *statusText = TextFormat("%d/%d ACTIVE", activeCount, MAX_LOG_ENTRIES);
-    int statusW = MeasureText(statusText, 11);
-    DrawText(statusText, panelX + width - statusW - 16, startY + 11, 11, (Color){75, 80, 95, 255});
+    int statusFs = 13;
+    int statusW = MeasureText(statusText, statusFs);
+    DrawText(statusText, panelX + width - statusW - 18, startY + 14, statusFs, (Color){110, 115, 135, 255});
 
     // Accent separator line
     DrawLine(panelX + 12, startY + headerH, panelX + width - 12, startY + headerH, (Color){40, 45, 58, 255});
@@ -147,21 +148,22 @@ void DrawActionLog(const ActionLog *log, int centerX, int startY, int width, int
 
             int rowY = startY + headerH + 6 + (i * rowH);
 
-            // Small glowing bullet pip
+            // Glowing bullet pip
             Color pipColor = ColorAlpha(entry->color, alpha * 0.95f);
-            DrawCircle(panelX + 24, rowY + (rowH / 2), 4.0f, pipColor);
+            DrawCircle(panelX + 26, rowY + (rowH / 2), 5.0f, pipColor);
+            DrawCircleLines(panelX + 26, rowY + (rowH / 2), 6.5f, ColorAlpha(entry->color, alpha * 0.4f));
 
-            // Entry message text
-            int fs = 15;
+            // Bigger entry message text (fs = 18)
+            int fs = 18;
             Color textCol = ColorAlpha(entry->color, alpha);
-            DrawText(entry->text, panelX + 38, rowY + (rowH / 2) - (fs / 2) - 1, fs, textCol);
+            DrawText(entry->text, panelX + 44, rowY + (rowH / 2) - (fs / 2) - 1, fs, textCol);
         }
     }
 
     if (activeCount == 0) {
         const char *idle = "Awaiting player inputs...";
-        int idleFs = 14;
+        int idleFs = 18;
         int idleW = MeasureText(idle, idleFs);
-        DrawText(idle, centerX - (idleW / 2), startY + (height / 2) - 4, idleFs, (Color){70, 75, 90, 255});
+        DrawText(idle, centerX - (idleW / 2), startY + (height / 2) - (idleFs / 2), idleFs, (Color){75, 80, 95, 255});
     }
 }
