@@ -46,7 +46,7 @@ flowchart TD
     - Successful: `"Invoked: Forge Spirit (E E Q)"`
     - Duplicate in Slot 1: `"Already in Slot 1: Forge Spirit"`
     - Incomplete buffer: `"Cannot invoke: Need 3 orbs"`
-  - [x] Timed entry decay / smooth alpha fade-out over time (`lifetime / max_lifetime`).
+  - [x] Sticky persistent FIFO action feed with tactile entry highlight pulse (no time decay).
 - [x] Render invoked spell slot badges (`D`, `F`) with active spell names and border colors.
 
 ### Phase 4: UI, HUD & Real Dota 2 Visual Assets
