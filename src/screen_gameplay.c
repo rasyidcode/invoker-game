@@ -30,13 +30,22 @@ void ResetGameplaySession(GameContext *ctx, bool timed) {
 }
 
 static void PushOrbWithAnim(OrbBuffer *buffer, OrbAnimState *anim, OrbType orb) {
-    PushOrbBuffer(buffer, orb);
-    anim->scale[0] = anim->scale[1];
-    anim->scale[1] = anim->scale[2];
-    anim->scale[2] = 1.35f; // +35% punch pop
-    anim->flashAlpha[0] = anim->flashAlpha[1];
-    anim->flashAlpha[1] = anim->flashAlpha[2];
-    anim->flashAlpha[2] = 1.0f; // bright flash
+    if (!buffer || !anim || orb == ORB_NONE) return;
+
+    if (buffer->count < MAX_ACTIVE_ORBS) {
+        int targetIdx = buffer->count;
+        PushOrbBuffer(buffer, orb);
+        anim->scale[targetIdx] = 1.35f; // +35% punch pop
+        anim->flashAlpha[targetIdx] = 1.0f; // bright flash
+    } else {
+        PushOrbBuffer(buffer, orb);
+        anim->scale[0] = anim->scale[1];
+        anim->scale[1] = anim->scale[2];
+        anim->scale[2] = 1.35f; // +35% punch pop
+        anim->flashAlpha[0] = anim->flashAlpha[1];
+        anim->flashAlpha[1] = anim->flashAlpha[2];
+        anim->flashAlpha[2] = 1.0f; // bright flash
+    }
 }
 
 static void DrawTitle(bool timed, float timer) {
@@ -178,7 +187,7 @@ static void DrawOrbs(const OrbBuffer *buffer, const GameAssets *assets, const Or
 
     for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
         float posX = (float)(centerX + (i - 1) * orbSpacing);
-        bool hasOrb = (i < buffer->count);
+        bool hasOrb = (i < buffer->count && buffer->orbs[i] != ORB_NONE);
 
         // Subtle floating bobbing motion like Dota 2 hovering orbs
         float bobOffset = hasOrb ? sinf(time * 3.5f + (float)i * 2.0f) * 6.0f : 0.0f;
