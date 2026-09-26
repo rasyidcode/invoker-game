@@ -310,8 +310,10 @@ Then open `http://localhost:8080` in Chrome, Firefox, or Safari.
 | **Tab freezes / unresponsive warning** | Standard `while(!WindowShouldClose())` loop used. | Refactor main loop to `emscripten_set_main_loop(UpdateDrawFrame, 0, 1)` or pass `-s ASYNCIFY`. |
 | **No audio on startup** | Modern browser Autoplay Policy requires user interaction before audio plays. | Audio will unmute on the first click/keystroke. Use `ResumeAudioDevice()` or let Raylib manage device state. |
 | **Missing textures / audio files** | Assets were not bundled into the virtual filesystem. | Add `--preload-file assets` to the `emcc` linker invocation. |
+| **Double-letterboxing / tiny squished canvas** | `FLAG_WINDOW_RESIZABLE` in Raylib forces Web canvas to `window.innerWidth/innerHeight`, and `FLAG_WINDOW_HIGHDPI` disables GLFW CSS scaling. | Omit `FLAG_WINDOW_RESIZABLE` and `FLAG_WINDOW_HIGHDPI` on web (`#if !defined(PLATFORM_WEB)`). Initialize at native virtual resolution (`InitWindow(720, 1280, ...)`), and let CSS shell scale via `width: min(calc(96vh * (9/16)), 96vw) !important; height: min(96vh, calc(96vw * (16/9))) !important;`. |
 | **Arrow keys / Space scrolls the page** | Browser handles key events before the canvas. | Set `tabindex="-1"` on `<canvas>` and prevent default scroll in JS or use `canvas.focus()`. |
 | **Memory growth out of bounds error** | Pre-allocated heap exceeded. | Increase `-s TOTAL_MEMORY=134217728` ($128\text{MB}$) or pass `-s ALLOW_MEMORY_GROWTH=1` (with small perf penalty). |
+
 
 ---
 

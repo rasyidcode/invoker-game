@@ -116,11 +116,16 @@ static void UpdateDrawFrame(void) {
 }
 
 int main(void) {
+#if defined(PLATFORM_WEB)
+    // On web, use fixed native virtual resolution (720x1280, 9:16 portrait).
+    // The HTML5 shell CSS handles responsive viewport scaling and mouse coordinate mapping.
+    InitWindow(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, "Dota 2 - Invoker Game");
+#else
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_HIGHDPI);
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Dota 2 - Invoker Game");
-    SetExitKey(KEY_NULL); // Prevent ESC from closing the game (used for in-game navigation)
-
     SetWindowMinSize(360, 640);
+#endif
+    SetExitKey(KEY_NULL); // Prevent ESC from closing the game (used for in-game navigation)
     SetTargetFPS(TARGET_FPS);
 
     // Initialize Assets and Audio Systems
