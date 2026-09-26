@@ -17,6 +17,7 @@ dist/
 
 ## Executables
 invoker_game
+invoker_game_debug
 
 # Common compiler output formats
 *.out
@@ -28,7 +29,8 @@ invoker_game
 *.log
 
 # Editor & IDE Files
-*.vscode/
+.vscode/*
+!.vscode/*.example
 *.idea/
 *.swp
 *.swo
@@ -37,10 +39,3 @@ invoker_game
 # OS Files
 .DS_Store
 Thumbs.db
-
-# Ignore playground binaries
-playground/*
-!playground/*.c
-!playground/Makefile
-!playground/*.md
-

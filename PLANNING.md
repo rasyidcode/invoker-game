@@ -57,29 +57,42 @@ When **R (Invoke)** is pressed:
    - Slot 2 is overwritten by the contents of Slot 1.
    - Slot 1 receives $S_{new}$.
 
+### 2.6 Sister Projects & Extended Mechanics
+To maintain high velocity and zero friction, extended gameplay styles have been partitioned into dedicated standalone repositories:
+- **[Invoker: Arcane Surge](../invoker-surge)**: Arcade momentum game featuring dynamic fever bars, decay pressure, and frenzy spell-cycling.
+- **[Invoker: Match Simulator](../invoker-sim)**: Tactical Dota 2 sandbox featuring authentic mana pool budgeting, per-spell cooldown rotations, and combo trials.
+
 ---
 
 ## 3. Game Modes
 
-### Mode 1: Free Practice / Sandbox
-- No timer, no fail condition.
-- Real-time display of current orbs and spell slots.
-- Cast testing: pressing `D` or `F` plays the spell sound effect and triggers a simulated cooldown.
-- Visual spell-book helper showing all 10 recipes for quick reference.
+### Mode 1: Endless Survival (Sudden Death) - Flagship High-Stakes Mode
+- Starts with a **15.0-second countdown**.
+- Every correct spell invocation adds a **+2.5s time bonus** (capped at 25.0s maximum bank to maintain relentless urgency).
+- **Sudden Death Penalty**: Any missed invoke (wrong multiset combination or attempting to invoke with fewer than 3 orbs) results in **IMMEDIATE DEFEAT**!
+- If the countdown reaches zero, the run terminates immediately.
+- Evaluates player skill on the official **Dota 2 Rank Ladder**:
+  - **Herald**: 0 - 4 spells
+  - **Guardian**: 5 - 9 spells
+  - **Crusader**: 10 - 14 spells
+  - **Archon**: 15 - 21 spells
+  - **Legend**: 22 - 29 spells
+  - **Ancient**: 30 - 39 spells
+  - **Divine**: 40 - 49 spells
+  - **Immortal**: 50+ spells
 
 ### Mode 2: Speed Trainer / Time Attack
-- The game displays a target spell icon and name (e.g., *"Invoke: Sun Strike!"*).
-- The player must input the correct orbs and press `R` (optionally cast with `D`).
-- **Timed Run**: 30 or 60 seconds.
-- **Score System**:
-  - Points awarded based on reaction time (faster invoke = higher score).
-  - Combo multiplier increases with consecutive correct invokes.
-  - Miss penalty: wrong invoke resets streak and deducts a small time/score penalty.
-- Summary screen showing: Total Spells Invoked, Average Reaction Time (ms), Accuracy (%), and APM.
+- Standard fixed **60-second speed test**.
+- High combo multiplier on streaks without sudden-death elimination.
+- Targets APM (actions per minute) and sustained invocation consistency.
 
-### Mode 3: Quiz / Recipe Memorization
-- Displays a spell name/icon and asks for the 3 orbs without time pressure.
-- Great for beginners to build initial neural pathways before attempting speed modes.
+### Mode 3: Free Practice / Sandbox
+- Untimed sandbox with zero fail conditions.
+- Real-time display of current orbs, slot shifting, action logging, and audition cues (`D` and `F`).
+
+### Mode 4: Interactive Spell Book & Guide
+- Complete 10-spell catalog with animated elemental badges and click-to-audition Dota 2 sound effects.
+- Controls & reagent guides for novice and advanced players.
 
 ---
 
@@ -90,25 +103,33 @@ When **R (Invoke)** is pressed:
 invoker-game/
 ├── Makefile             # Build automation
 ├── AGENTS.md            # Guidelines for AI assistants
-├── PLANNING.md          # Master architecture and roadmap
+├── PLANNING.md          # Master architecture and design specifications
+├── ROADMAP.md           # Milestone flowchart, phase breakdown, and task checklists
 ├── assets/
-│   ├── fonts/           # Clean HUD fonts (e.g. TTF)
 │   ├── icons/           # Quas, Wex, Exort, Invoke, 10 spell icons
-│   └── sounds/          # Orb clicks, invoke sound, spell audio cues
+│   │   └── ranks/       # 8 official Dota 2 rank badge icons (Herald to Immortal)
+│   └── sounds/          # Orb clicks, invoke sound, spell audio cues, voice lines
 ├── include/
-│   ├── audio.h          # Audio manager interface
-│   ├── config.h         # Game constants, window dimensions, keybindings
-│   ├── game.h           # Game state machine and loop declarations
+│   ├── assets.h         # Texture and icon asset manager interface
+│   ├── audio.h          # Audio manager interface (SFX, music, voice cues)
+│   ├── config.h         # Game settings, window dimensions, and persistence
+│   ├── log.h            # On-screen action log and event feed
 │   ├── orb.h            # Orb types, buffer logic, formula matching
-│   ├── spell.h          # Spell definitions, properties, lookup
-│   └── ui.h             # HUD layout, drawing functions, particle effects
+│   ├── screen.h         # Screen state machine, transitions, and screen modules
+│   └── spell.h          # Spell definitions, properties, lookup
 └── src/
-    ├── audio.c          # Raylib audio loading and playback
-    ├── game.c           # Mode logic (Time Attack, Sandbox, State switches)
+    ├── assets.c         # Texture and icon loading/unloading
+    ├── audio.c          # Raylib audio loading, sound effects, voice cues
+    ├── log.c            # Action log FIFO ring buffer and HUD rendering
     ├── main.c           # Program entry point, main loop, init/shutdown
     ├── orb.c            # FIFO buffer operations, orb inputs
-    ├── spell.c          # 10-spell registry and combination resolver
-    └── ui.c             # Raylib rendering for orbs, slots, timers, and HUD
+    ├── screen.c         # Screen state machine and transition handling
+    ├── screen_gameplay.c# Gameplay screen (Practice & Time Attack)
+    ├── screen_logo.c    # Animated Raylib splash screen
+    ├── screen_menu.c    # Main menu screen
+    ├── screen_settings.c# Settings screen (audio sliders, gameplay toggles)
+    ├── screen_spellbook.c# Interactive spell catalog screen
+    └── spell.c          # 10-spell registry and combination resolver
 ```
 
 ### 4.2 Key Data Structures
@@ -144,9 +165,8 @@ typedef struct {
     int req_wex;
     int req_exort;
     Color theme_color;
-    float cooldown;
-    // Texture2D icon; (loaded at runtime)
-    // Sound sound;     (loaded at runtime)
+    // Texture2D icon;   // (loaded at runtime)
+    // Sound sound;      // (loaded at runtime)
 } SpellInfo;
 
 typedef struct {
@@ -157,103 +177,169 @@ typedef struct {
 typedef struct {
     SpellId slot1; // Primary (D)
     SpellId slot2; // Secondary (F)
-    float cooldown_slot1;
-    float cooldown_slot2;
 } SpellSlots;
 ```
 
-#### Game State Machine (`include/game.h`)
+#### Game State Machine (`include/screen.h`)
 ```c
 typedef enum {
-    STATE_MENU,
-    STATE_PRACTICE,
-    STATE_TIME_ATTACK,
-    STATE_QUIZ,
-    STATE_GAME_OVER
-} GameState;
+    SCREEN_LOGO = 0,
+    SCREEN_MENU,
+    SCREEN_PRACTICE,
+    SCREEN_TIME_ATTACK,
+    SCREEN_ENDLESS,
+    SCREEN_SPELLBOOK,
+    SCREEN_GAME_OVER
+} GameScreen;
+
+typedef enum {
+    MENU_PAGE_MAIN = 0,
+    MENU_PAGE_PLAY,
+    MENU_PAGE_HELP,
+    MENU_PAGE_HIGHSCORE,
+    MENU_PAGE_SETTINGS,
+    MENU_PAGE_CONTROLS
+} MenuPage;
 
 typedef struct {
-    GameState state;
-    OrbBuffer orb_buffer;
-    SpellSlots spell_slots;
-    
-    // Time Attack metrics
-    SpellId target_spell;
-    float timer_remaining;
-    float reaction_timer;
+    bool active;
+    GameplayMode mode;
     int score;
+    int totalSpells;
     int streak;
-    int highest_streak;
-    int total_attempted;
-    int total_correct;
-    float total_reaction_time;
+    int highestStreak;
+    int totalAttempted;
+    float timeElapsed;
+    DotaRank rank;
+    bool isNewRecord;
+    bool defeatedByMiss;
+    int selectedButton; // 0: Try Again, 1: Main Menu
+} GameOverModal;
+
+typedef struct {
+    GameScreen currentScreen;
+    bool shouldExit;
+
+    // Subsystems
+    const GameAssets *assets;
+    AudioManager *audio;
+    GameSettings settings;
+    HighScoreData highScores;
+
+    // Gameplay state
+    GameplayMode gameMode;
+    OrbBuffer orbBuffer;
+    SpellSlots spellSlots;
+    ActionLog actionLog;
+    SpellId targetSpell;
+    int streak;
+    int score;
+    int highestStreak;
+    int totalAttempted;
+    int totalCorrect;
+
+    // Timer mode
+    float roundTimer;
+    float maxRoundTimer;
+    float timeElapsed;
+    bool isTimedMode;
+
+    // Animations & Feedback
+    QuizFeedback feedback;
+    OrbAnimState orbAnim;
+    InvokePulse invokePulse;
+
+    // Menu selection & state
+    MenuPage menuPage;
+    int menuSelected;
+
+    // Game Over Popup Modal
+    GameOverModal gameOver;
+
+    // Screen transition
+    ScreenTransition transition;
 } GameContext;
 ```
+
+#### Configuration, High Scores & Dota 2 Ranks (`include/config.h`)
+```c
+typedef enum {
+    DOTA_RANK_HERALD = 0,
+    DOTA_RANK_GUARDIAN,
+    DOTA_RANK_CRUSADER,
+    DOTA_RANK_ARCHON,
+    DOTA_RANK_LEGEND,
+    DOTA_RANK_ANCIENT,
+    DOTA_RANK_DIVINE,
+    DOTA_RANK_IMMORTAL,
+    DOTA_RANK_COUNT
+} DotaRank;
+
+typedef struct {
+    // Audio configuration
+    float masterVolume;     // 0.0f to 1.0f
+    float sfxVolume;        // 0.0f to 1.0f
+    float voiceVolume;      // 0.0f to 1.0f
+    float musicVolume;      // 0.0f to 1.0f
+    bool sfxMuted;
+    bool voiceMuted;
+    bool musicMuted;
+
+    // Gameplay preferences
+    int roundDuration;      // 30 or 60 seconds
+    bool showRecipeHelper;  // Display 10-spell cheat-sheet on screen
+    bool showActionFeed;    // Display on-screen event log
+    bool screenShake;       // Camera shake on heavy spells
+
+    // Display
+    bool fullscreen;
+} GameSettings;
+
+typedef struct {
+    int endlessBestScore;
+    int endlessBestStreak;
+    int endlessBestSpells;
+    DotaRank endlessBestRank;
+
+    int timeAttackBestScore;
+    int timeAttackBestStreak;
+    int timeAttackBestSpells;
+    DotaRank timeAttackBestRank;
+} HighScoreData;
+```
+- **Persistence**: Saved to/loaded from `settings.dat` and `scores.dat` via binary `fwrite`/`fread`. Falls back to defaults if files are absent.
+
+#### On-Screen Action Log / Event Feed (`include/ui.h`)
+```c
+#define MAX_LOG_ENTRIES 6
+#define LOG_ENTRY_MAX_LEN 64
+#define LOG_ENTRY_DEFAULT_LIFETIME 3.0f // seconds visible
+
+typedef struct {
+    char text[LOG_ENTRY_MAX_LEN];
+    Color color;
+    float lifetime;     // Time remaining in seconds
+    float max_lifetime; // Initial duration (for calculating alpha fade)
+} ActionLogEntry;
+
+typedef struct {
+    ActionLogEntry entries[MAX_LOG_ENTRIES];
+    int count;
+} ActionLog;
+```
+- **Behavior**:
+  - Acts as a fixed-capacity feed (FIFO shift or circular buffer) requiring **zero dynamic allocations** per frame.
+  - When a new event occurs (e.g., orb press or spell invocation), older entries slide up, and the newest entry appears at the bottom.
+  - Each entry maintains a countdown timer (`lifetime`). As `lifetime` approaches zero, the text smoothly fades out via `ColorAlpha(entry.color, entry.lifetime / entry.max_lifetime)`.
+  - Expired entries (`lifetime <= 0`) are removed or ignored during rendering.
 
 ---
 
 ## 5. Development Roadmap & Milestones
 
-```mermaid
-flowchart TD
-    M1["Phase 1: Raylib Setup & Window"] --> M2["Phase 2: Orb Buffer (Q,W,E)"]
-    M2 --> M3["Phase 3: Invoke Engine (R)"]
-    M3 --> M4["Phase 4: HUD & UI Drawing"]
-    M4 --> M5["Phase 5: Audio & Sound Effects"]
-    M5 --> M6["Phase 6: Speed Trainer Mode"]
-    M6 --> M7["Phase 7: High Scores & Polish"]
-```
+The actionable development phases, phase diagram, and active progress checklists are maintained in a dedicated tracking document:
 
-### Phase 1: Environment & Raylib Window
-- [x] Create `Makefile` with proper Raylib compiler and linker flags for Linux.
-- [x] Implement clean `main.c` with 1280x720 window, 60 FPS target, and basic Raylib game loop.
-- [x] Verify clean compilation without warnings (`-Wall -Wextra`).
-
-### Phase 2: Orb Buffer Engine (Q, W, E)
-- [ ] Define `OrbType` enum and `OrbBuffer` struct in `include/orb.h`.
-- [ ] Implement push function that maintains exactly the last 3 pressed orbs (FIFO).
-- [ ] Bind keyboard input `KEY_Q`, `KEY_W`, `KEY_E`.
-- [ ] Draw colored circles or placeholder shapes at the bottom-center of the screen representing active orbs.
-
-### Phase 3: The Invoke Engine (R)
-- [ ] Create spell registry with all 10 spells and their required $(Q, W, E)$ counts.
-- [ ] Implement lookup function: `SpellId ResolveSpell(const OrbBuffer *buffer)`.
-- [ ] Implement slot shift logic for Slot 1 and Slot 2 upon pressing `KEY_R`.
-- [ ] Print invoked spell names on screen to confirm combination matching works 100% accurately.
-
-### Phase 4: UI & HUD Aesthetics
-- [ ] Design Dota 2 inspired bottom HUD bar:
-  - 3 Orb indicator circles (Cyan, Violet, Orange).
-  - Orb key label badges (`Q`, `W`, `E`).
-  - Invoke button (`R`) with cooldown/ready state indicator.
-  - Two active spell slot boxes (`D`, `F`) displaying spell names and colors.
-- [ ] Add texture loading support (`assets/icons/`) with fallback procedural drawing when assets are absent.
-- [ ] Add smooth key-press visual feedback (scaling/pulsing orbs on press).
-
-### Phase 5: Audio & Sound Effects
-- [ ] Initialize Raylib audio system (`InitAudioDevice` / `CloseAudioDevice`).
-- [ ] Implement click/elemental audio for Quas, Wex, Exort.
-- [ ] Add Invoke activation sound.
-- [ ] Add casting audio for `D` and `F` triggers.
-
-### Phase 6: Game Mode - Time Attack / Speed Trainer
-- [ ] Implement random target spell selection.
-- [ ] Display target spell banner with icon and name prominently.
-- [ ] Implement round timer (e.g., 30 seconds countdown).
-- [ ] Evaluate invoke accuracy:
-  - Correct spell $\rightarrow$ play success sound, add score, increase combo streak, pick next target.
-  - Incorrect spell $\rightarrow$ play error sound, reset streak, small score/time penalty.
-- [ ] Create Game Over summary screen showing:
-  - Final Score
-  - Spells per minute (APM)
-  - Average reaction time in milliseconds
-  - Accuracy percentage
-
-### Phase 7: Data Persistence & Final Polish
-- [ ] Save best scores and personal records to a local file (`scores.dat`).
-- [ ] Add simple particle system for orb trails and invoke burst.
-- [ ] Screen shake effect on invoking powerful spells (Sun Strike, Chaos Meteor).
-- [ ] Settings menu for key rebinding or audio volume sliders.
+👉 **See [ROADMAP.md](./ROADMAP.md) for the complete roadmap, phase breakdown, and milestone checklists.**
 
 ---
 
@@ -269,3 +355,5 @@ flowchart TD
 3. **Deterministic State Updates**:
    - Separate state mutation (`UpdateGame(float dt)`) from rendering (`DrawGame()`).
    - Keep input handling responsive and tied to frame delta time for animations.
+4. **WebAssembly / Emscripten Compatibility**:
+   - Structure the main loop so the frame tick can be called either via a standard `while (!WindowShouldClose())` loop (desktop) or via `emscripten_set_main_loop()` under `#if defined(PLATFORM_WEB)`.
