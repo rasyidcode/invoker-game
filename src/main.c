@@ -114,7 +114,7 @@ int main(void) {
             };
 
             DrawTexturePro(target.texture, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
-            DrawFPS(20, 20);
+            if (IsKeyDown(KEY_F3)) DrawFPS(20, 20);
         EndDrawing();
     }
 

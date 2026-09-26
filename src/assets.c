@@ -36,6 +36,14 @@ static Texture2D LoadCircularTextureSafe(const char *filePath) {
         return (Texture2D){ 0 };
     }
 
+    // If image is not square (e.g. 16:9 hero portrait), crop to center square
+    if (img.width != img.height) {
+        int size = (img.width < img.height) ? img.width : img.height;
+        int cropX = (img.width - size) / 2;
+        int cropY = (img.height - size) / 2;
+        ImageCrop(&img, (Rectangle){ (float)cropX, (float)cropY, (float)size, (float)size });
+    }
+
     // Generate circular alpha mask (white circle on transparent background)
     Image mask = GenImageColor(img.width, img.height, BLANK);
     ImageDrawCircle(&mask, img.width / 2, img.height / 2, img.width / 2, WHITE);
@@ -73,9 +81,9 @@ void InitGameAssets(GameAssets *assets) {
     assets->circularOrbIcons[ORB_WEX] = LoadCircularTextureSafe("assets/icons/wex.png");
     assets->circularOrbIcons[ORB_EXORT] = LoadCircularTextureSafe("assets/icons/exort.png");
 
-    // Load invoke icon and hero portrait
+    // Load invoke icon and circular hero portrait
     LoadTextureSafe(&assets->invokeIcon, "assets/icons/invoke.png");
-    LoadTextureSafe(&assets->heroPortrait, "assets/icons/invoker.png");
+    assets->heroPortrait = LoadCircularTextureSafe("assets/icons/invoker.png");
 
     assets->loaded = true;
 }
