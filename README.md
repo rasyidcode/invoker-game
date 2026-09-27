@@ -154,9 +154,11 @@ sudo dnf install gcc make raylib-devel mesa-libGL-devel libX11-devel
 invoker-game/
 ├── Makefile             # Compilation rules and build configuration
 ├── AGENTS.md            # Guidelines and rules of engagement for AI assistants
-├── PLANNING.md          # Architectural blueprints and game design specification
-├── ROADMAP.md           # Milestone flowchart, phase breakdown, and task checklists
 ├── README.md            # Project overview and instructions
+├── docs/                # Architecture, roadmap, and issue tracking documentation
+│   ├── PLANNING.md      # Architectural blueprints and game design specification
+│   ├── ROADMAP.md       # Milestone flowchart, phase breakdown, and task checklists
+│   └── known-issues/    # Bug reports and post-mortems
 ├── assets/              # Authentic Dota 2 spell/orb icons and audio cues
 │   ├── icons/           # Quas, Wex, Exort, Invoke, and 10 spell icons
 │   │   └── ranks/       # 8 official Dota 2 rank badge icons (Herald to Immortal)
@@ -190,8 +192,8 @@ invoker-game/
 
 ## Documentation
 
-* **[PLANNING.md](./PLANNING.md)**: Detailed system architecture, data structures, and game mechanics specification.
-* **[ROADMAP.md](./ROADMAP.md)**: Current development progress, phase-by-phase checklists, and upcoming milestones.
+* **[PLANNING.md](./docs/PLANNING.md)**: Detailed system architecture, data structures, and game mechanics specification.
+* **[ROADMAP.md](./docs/ROADMAP.md)**: Current development progress, phase-by-phase checklists, and upcoming milestones.
 * **[AGENTS.md](./AGENTS.md)**: Behavioral rules and pedagogical guidelines for AI pair programmers.
 
 ---

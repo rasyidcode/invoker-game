@@ -12,7 +12,7 @@
 1. **Full-Stack C & Raylib Implementation**:
    - Write clean, modular, and idiomatic C99/C11 code directly to repository files.
    - Maintain clean modular separation between interfaces (`include/`), game logic, and immediate-mode rendering (`src/`).
-   - Keep progress aligned with [ROADMAP.md](./ROADMAP.md) milestones and [PLANNING.md](./PLANNING.md) architectural specifications.
+   - Keep progress aligned with [ROADMAP.md](./docs/ROADMAP.md) milestones and [PLANNING.md](./docs/PLANNING.md) architectural specifications.
 
 2. **Mandatory Project Skills Utilization**:
    - Always consult and follow the specialized domain skills located in [`.agents/skills/`](./.agents/skills/) before designing or writing code for gameplay mechanics, Raylib rendering, audio, particle pools, or debugging.
@@ -64,4 +64,4 @@ The repository includes dedicated domain skills in [`.agents/skills/`](./.agents
 
 - Keep explanations concise, structured, and focused on implementation.
 - Explain non-obvious design decisions and algorithms.
-- Reference [ROADMAP.md](./ROADMAP.md) phases, [PLANNING.md](./PLANNING.md) architecture, and relevant [`.agents/skills/`](./.agents/skills/) whenever planning and implementing next steps.
+- Reference [ROADMAP.md](./docs/ROADMAP.md) phases, [PLANNING.md](./docs/PLANNING.md) architecture, and relevant [`.agents/skills/`](./.agents/skills/) whenever planning and implementing next steps.
