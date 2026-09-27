@@ -16,7 +16,7 @@ flowchart TD
     M6 --> M7["Phase 7: Speed Trainer (Time Attack)"]
     M7 --> M8["Phase 8: High Scores & Polish"]
     M8 --> M9["Phase 9: WebAssembly Export (Emscripten)"]
-    M9 --> M10["Phase 10: Desktop Build Relocation (build/desktop)"]
+    M9 --> M10["Phase 10: Linux Build Relocation (build/linux)"]
 ```
 
 ---
@@ -152,13 +152,18 @@ flowchart TD
 - [x] Create reusable project skill `.agents/skills/raylib-web-assembly/SKILL.md` for Raylib WASM export patterns.
 - [x] Deployable WebAssembly package in `build/web/` ready for itch.io / GitHub Pages.
 
-### Phase 10: Desktop Build Relocation (`build/desktop`)
-- [ ] Refactor `Makefile` output directories for desktop compilation:
-  - Route intermediate object files to `build/desktop/obj/*.o` instead of polluting `src/`.
-  - Output compiled desktop binary executable to `build/desktop/invoker_game`.
-- [ ] Add `clean-desktop` target and update `clean` to purge all build directories (`build/desktop`, `build/web`).
-- [ ] Update `make run` to launch `build/desktop/invoker_game`.
-- [ ] Ensure asset paths (`assets/`) and save data (`settings.dat`, `scores.dat`) resolve correctly whether executed from repository root or inside `build/desktop/`.
+### Phase 10: Multi-Platform Build Pipeline & Linux Target Relocation (`build/linux`)
+- [ ] Refactor `Makefile` output directories for Linux compilation:
+  - Route intermediate object files to `build/linux/obj/*.o` instead of polluting `src/`.
+  - Output compiled Linux binary executable to `build/linux/invoker_game`.
+- [ ] Establish unified multi-platform directory structure under `build/`:
+  - `build/linux/` (Linux x86_64 desktop binary)
+  - `build/web/` (WebAssembly / HTML5 export)
+  - *(Future targets)*: `build/windows/`, `build/macos/`, `build/android/`
+- [ ] Add `clean-linux` target and update `clean` to purge all build directories (`build/linux`, `build/web`).
+- [ ] Update `make run` to launch `build/linux/invoker_game`.
+- [ ] Ensure asset paths (`assets/`) and save data (`settings.dat`, `scores.dat`) resolve correctly whether executed from repository root or inside `build/linux/`.
 - [ ] Update build and run instructions in `README.md`.
+
 
 
