@@ -24,8 +24,6 @@ void InitGameContext(GameContext *ctx, const GameAssets *assets, AudioManager *a
     ctx->gameOver = (GameOverModal){0};
 
     InitParticleSystem(&ctx->particles);
-    ctx->screenShakeTimer = 0.0f;
-    ctx->screenShakeIntensity = 0.0f;
 
     ctx->transition.active = false;
     ctx->transition.alpha = 0.0f;

@@ -5,6 +5,7 @@
 *.so
 *.dylib
 *.dll
+*.d
 
 # Build & Output Directories
 bin/

@@ -40,8 +40,6 @@ void ResetGameplaySession(GameContext *ctx, GameplayMode mode) {
     }
     ctx->invokePulse = (InvokePulse){0};
     ClearParticles(&ctx->particles);
-    ctx->screenShakeTimer = 0.0f;
-    ctx->screenShakeIntensity = 0.0f;
 
     ctx->targetSpell = (SpellId)GetRandomValue(0, SPELL_COUNT - 1);
 }
@@ -631,11 +629,6 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
     UpdateActionLog(&ctx->actionLog, dt);
     UpdateParticleSystem(&ctx->particles, dt);
 
-    if (ctx->screenShakeTimer > 0.0f) {
-        ctx->screenShakeTimer -= dt;
-        if (ctx->screenShakeTimer < 0.0f) ctx->screenShakeTimer = 0.0f;
-    }
-
     // Subtle ambient sparkles orbiting around active floating orbs
     int orbSpacing = 153;
     int baseY = 620;
@@ -728,8 +721,6 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
                 Color sColor = sInfo ? sInfo->color : GOLD;
                 EmitInvokeBurst(&ctx->particles, invokeCenter, sColor, 24);
                 EmitSpellSuccessBurst(&ctx->particles, cardCenter, sColor);
-                ctx->screenShakeTimer = 0.35f;
-                ctx->screenShakeIntensity = 10.0f;
 
                 if (ctx->gameMode == GAME_MODE_ENDLESS) {
                     // Endless Mode: grant +2.5s time bonus!
@@ -767,8 +758,6 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
             } else {
                 ctx->totalAttempted++;
                 EmitInvokeBurst(&ctx->particles, invokeCenter, (Color){255, 65, 65, 255}, 16);
-                ctx->screenShakeTimer = 0.2f;
-                ctx->screenShakeIntensity = 6.0f;
 
                 if (ctx->gameMode == GAME_MODE_ENDLESS) {
                     // Sudden Death: any miss ends the game immediately!
@@ -810,8 +799,6 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
             snprintf(msg, sizeof(msg), "Cast [D]: %s", info->name);
             AddLogEntry(&ctx->actionLog, msg, info->color);
             EmitInvokeBurst(&ctx->particles, (Vector2){(float)(abilityStartX + 330 + 50), 820.0f}, info->color, 16);
-            ctx->screenShakeTimer = 0.22f;
-            ctx->screenShakeIntensity = 7.0f;
         }
     }
     if (IsKeyPressed(KEY_F) && ctx->spellSlots.slot2 != SPELL_NONE) {
@@ -822,8 +809,6 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
             snprintf(msg, sizeof(msg), "Cast [F]: %s", info->name);
             AddLogEntry(&ctx->actionLog, msg, info->color);
             EmitInvokeBurst(&ctx->particles, (Vector2){(float)(abilityStartX + 440 + 50), 820.0f}, info->color, 16);
-            ctx->screenShakeTimer = 0.22f;
-            ctx->screenShakeIntensity = 7.0f;
         }
     }
 }

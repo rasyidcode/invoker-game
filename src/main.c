@@ -95,17 +95,9 @@ static void UpdateDrawFrame(void) {
             -(float)gApp.target.texture.height // Negative height because Raylib inverted Y
         };
 
-        float shakeOffsetX = 0.0f;
-        float shakeOffsetY = 0.0f;
-        if (gApp.ctx.screenShakeTimer > 0.0f && gApp.ctx.settings.screenShake) {
-            float intensity = gApp.ctx.screenShakeIntensity * (gApp.ctx.screenShakeTimer / 0.35f);
-            shakeOffsetX = ((float)GetRandomValue(-100, 100) / 100.0f) * intensity;
-            shakeOffsetY = ((float)GetRandomValue(-100, 100) / 100.0f) * intensity;
-        }
-
         Rectangle destRec = {
-            ((float)GetScreenWidth() - ((float)VIRTUAL_WIDTH * scale)) * 0.5f + shakeOffsetX,
-            ((float)GetScreenHeight() - ((float)VIRTUAL_HEIGHT * scale)) * 0.5f + shakeOffsetY,
+            ((float)GetScreenWidth() - ((float)VIRTUAL_WIDTH * scale)) * 0.5f,
+            ((float)GetScreenHeight() - ((float)VIRTUAL_HEIGHT * scale)) * 0.5f,
             (float)VIRTUAL_WIDTH * scale,
             (float)VIRTUAL_HEIGHT * scale
         };

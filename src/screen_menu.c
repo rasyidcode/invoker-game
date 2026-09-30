@@ -320,10 +320,6 @@ static void DrawSettingsView(GameContext *ctx, Vector2 mouse) {
     DrawText(ctx->settings.showActionFeed ? "[ ON ]" : "[ OFF ]", cardX + 180, togY + 58, 15,
              ctx->settings.showActionFeed ? GREEN : (Color){150, 150, 150, 255});
 
-    DrawText("Screen Shake:", cardX, togY + 86, 15, RAYWHITE);
-    DrawText(ctx->settings.screenShake ? "[ ON ]" : "[ OFF ]", cardX + 180, togY + 86, 15,
-             ctx->settings.screenShake ? GREEN : (Color){150, 150, 150, 255});
-
     // Back button
     int btnY = 1000;
     Rectangle backRec = {(float)cardX, (float)btnY, (float)cardW, 56};
@@ -682,7 +678,6 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
                 SaveSettings(&ctx->settings);
                 PlayOrbSound(ctx->audio, ORB_WEX);
             } else if (CheckCollisionPointRec(mouse, r3)) {
-                ctx->settings.screenShake = !ctx->settings.screenShake;
                 SaveSettings(&ctx->settings);
                 PlayOrbSound(ctx->audio, ORB_WEX);
             }
