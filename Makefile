@@ -1,10 +1,11 @@
 # Compiler & Flags for Desktop (Linux x86_64)
 CC ?= gcc
-CFLAGS = -Wall -Wextra -std=c99 -Iinclude -I/usr/local/include
+CFLAGS = -Wall -Wextra -std=c99 -Iinclude -I/usr/local/include -MMD -MP
 LDFLAGS = -L/usr/local/lib -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 
 SRC = $(wildcard src/*.c)
 OBJ = $(SRC:.c=.o)
+DEP = $(OBJ:.o=.d)
 TARGET = invoker_game
 
 # Emscripten toolchain for WebAssembly (HTML5)
@@ -32,6 +33,8 @@ $(TARGET): $(OBJ)
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+-include $(DEP)
+
 run: $(TARGET)
 	./$(TARGET)
 
@@ -47,7 +50,7 @@ run-web: web
 	python3 -m http.server 8080 --directory $(WEB_OUT_DIR)
 
 clean:
-	rm -f src/*.o $(TARGET)
+	rm -f src/*.o src/*.d $(TARGET)
 	rm -rf $(WEB_OUT_DIR)
 
 clean-web:

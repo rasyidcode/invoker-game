@@ -44,7 +44,6 @@ typedef struct {
     int roundDuration;      // 30 or 60 seconds
     bool showRecipeHelper;  // Display 10-spell cheat-sheet on screen
     bool showActionFeed;    // Display on-screen event log
-    bool screenShake;       // Camera shake on heavy spells
 
     // Display
     bool fullscreen;

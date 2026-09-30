@@ -106,8 +106,6 @@ typedef struct {
     OrbAnimState orbAnim;
     InvokePulse invokePulse;
     ParticleSystem particles;
-    float screenShakeTimer;
-    float screenShakeIntensity;
 
     // Menu selection & state
     MenuPage menuPage;

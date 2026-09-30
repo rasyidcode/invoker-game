@@ -17,7 +17,6 @@ void InitDefaultSettings(GameSettings *settings) {
     settings->roundDuration = 60;
     settings->showRecipeHelper = true;
     settings->showActionFeed = true;
-    settings->screenShake = true;
     settings->fullscreen = false;
 }
 
