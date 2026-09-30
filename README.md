@@ -6,68 +6,37 @@ A fast-paced reaction and muscle-memory training game modeled after the iconic s
 
 ## Overview
 
-The Invoker Game challenges players to rapidly manipulate three elemental reagents—**Quas**, **Wex**, and **Exort**—and press **Invoke** to manifest one of 10 distinct, devastating spells. Whether practicing in sandbox mode or racing the clock in time-attack challenges, this game helps develop the lightning-fast muscle memory required to master the Arsenal Magus.
+The Invoker Game challenges players to rapidly manipulate three elemental reagents—**Quas**, **Wex**, and **Exort**—and press **Invoke** to manifest one of 10 distinct, devastating spells. Built strictly around high-stakes **Endless Survival**, players must channel spells under intense time pressure where every correct invoke buys precious seconds and any mistake causes instant defeat.
 
 ---
 
-## Core Mechanics
+## Controls & Core Mechanics
 
-### The Three Elemental Orbs
+Manipulate three elemental reagents—**Quas** (`Q`), **Wex** (`W`), and **Exort** (`E`)—and press **Invoke** (`R`) to manifest spells into your active slots (`D` and `F`).
 
-| Key | Orb | Element | Color Theme | Essence |
-| :---: | :--- | :--- | :--- | :--- |
-| **`Q`** | **Quas** | Ice | Cyan (`#00D2FF`) | Cold, control, regeneration |
-| **`W`** | **Wex** | Storm | Violet (`#E040FB`) | Wind, lightning, swiftness |
-| **`E`** | **Exort** | Fire | Amber (`#FF5722`) | Flame, destruction, pure heat |
+| Key | Action | Description |
+| :---: | :--- | :--- |
+| **`Q`** | **Quas** (Ice) | Infuses ice element (`#00D2FF`) into the 3-orb FIFO buffer |
+| **`W`** | **Wex** (Storm) | Infuses storm element (`#E040FB`) into the 3-orb FIFO buffer |
+| **`E`** | **Exort** (Fire) | Infuses fire element (`#FF5722`) into the 3-orb FIFO buffer |
+| **`R`** | **Invoke** | Resolves the 3-orb combination and manifests the spell into Slot 1 |
+| **`D`** | **Cast Primary** | Casts primary spell (Slot 1) |
+| **`F`** | **Cast Secondary** | Casts secondary spell (Slot 2, shifted from Slot 1) |
+| **`Esc`** | **Pause / Back** | Pause active gameplay or return to previous menu |
 
-### The Orb Buffer & Invoke Mechanism
-1. **Sliding FIFO Buffer**: You hold up to **3 active orbs** at any time. Pressing `Q`, `W`, or `E` discards the oldest orb and pushes the newest one to the front.
-2. **Order-Independent Combination**: Pressing **`R` (Invoke)** counts the total quantity of Quas, Wex, and Exort in your buffer. The multiset count determines the spell (10 unique combinations total).
-3. **Active Spell Slots**: You have two active spell slots:
-   - **Slot 1 (Primary, key `D`)**
-   - **Slot 2 (Secondary, key `F`)**
-   - Invoking a new spell shifts the previous Slot 1 spell into Slot 2.
-### Spell Reference Table
-
-| Spell Name | Recipe | Q | W | E | Key | Effect |
-| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Cold Snap** | `Q Q Q` | 3 | 0 | 0 | `D` / `F` | Freezes target repeatedly upon taking damage |
-| **Ghost Walk** | `Q Q W` | 2 | 1 | 0 | `D` / `F` | Invisibility with aura slowing nearby enemies |
-| **Ice Wall** | `Q Q E` | 2 | 0 | 1 | `D` / `F` | Impassable wall of ice causing heavy slows |
-| **EMP** | `W W W` | 0 | 3 | 0 | `D` / `F` | Charges an electromagnetic pulse burning mana |
-| **Tornado** | `W W Q` | 1 | 2 | 0 | `D` / `F` | High-speed cyclone lifting enemies into the air |
-| **Alacrity** | `W W E` | 0 | 2 | 1 | `D` / `F` | Massive attack speed and bonus attack damage |
-| **Sun Strike** | `E E E` | 0 | 0 | 3 | `D` / `F` | Delayed global beam of pure solar devastation |
-| **Forge Spirit** | `E E Q` | 1 | 0 | 2 | `D` / `F` | Summons elemental spirits with armor melting attacks |
-| **Chaos Meteor** | `E E W` | 0 | 1 | 2 | `D` / `F` | Flaming meteor rolling forward leaving molten trail |
-| **Deafening Blast** | `Q W E` | 1 | 1 | 1 | `D` / `F` | Sonic wave knocking back, damaging, and disarming |
+> [!TIP]
+> For the complete 10-spell reference table, combination recipes, and detailed slot shift mechanics, see **[PLANNING.md](./docs/PLANNING.md#2-invoker-core-mechanics-specification)**.
 
 ---
 
-## Game Modes & Features
+## Endless Survival Mode
 
-* **Endless Survival (Sudden Death)**: High-stakes survival starting with a 15-second clock. Each correct spell awards **+2.5s**, while **any missed invoke triggers instant defeat**!
-* **Speed Trainer / Time Attack**: The classic 60-second speed test to push invocation APM and combo streak multipliers.
-* **Practice / Sandbox**: Freeform untimed invocation and casting sandbox with on-screen visual feedback and action logging.
-* **Dota 2 Rank System**: Official 8-tier ranking from **Herald** to **Immortal** based on invocation performance and score.
-* **Interactive Spell Book**: Catalog of all 10 spells with animated recipe badges and click-to-audition Dota 2 spell audio cues.
-* **Hall of Invocation (High Scores)**: Tracks personal records, highest strikes/streaks, and rank medals saved to `scores.dat`.
-* **Settings & Audio Controls**: In-game configuration screen with sliders and toggles for Master/SFX/Voice/Music volumes and preferences saved to `settings.dat`.
-* **Elemental Particle Effects & Screen Shake**: Zero-allocation fixed particle pool for Quas ice crystals, Wex storm sparks, Exort fire embers, 360° invoke shockwaves, and dynamic camera shake.
-
----
-
-## Default Controls
-
-| Action | Keybinding |
-| :--- | :---: |
-| Quas (Ice) | `Q` |
-| Wex (Storm) | `W` |
-| Exort (Fire) | `E` |
-| Invoke Spell | `R` |
-| Cast Primary Spell (Slot 1) | `D` |
-| Cast Secondary Spell (Slot 2) | `F` |
-| Back to Menu / Pause | `Escape` |
+The game is built strictly around high-intensity **Endless Survival**:
+- **15-Second Starting Clock**: Race against a rapidly depleting timer.
+- **+2.5s Per Correct Invoke**: Every successful spell adds precious seconds (bank capped at 25.0s).
+- **Sudden Death Penalty**: Any incorrect invoke or mistimed combination triggers **instant defeat**!
+- **Dota 2 Rank Ladder**: Climb 8 rank tiers from **Herald** to **Immortal** based on total spells invoked in a single run.
+- **Audio & Visual Immersion**: Authentic Dota 2 voice lines, elemental sound cues, and procedural particle bursts.
 
 ---
 
@@ -150,7 +119,6 @@ invoker-game/
 ├── docs/                # Architecture, roadmap, and issue tracking documentation
 │   ├── PLANNING.md      # Architectural blueprints and game design specification
 │   ├── ROADMAP.md       # Milestone flowchart, phase breakdown, and task checklists
-│   └── known-issues/    # Bug reports and post-mortems
 ├── assets/              # Authentic Dota 2 spell/orb icons and audio cues
 │   ├── icons/           # Quas, Wex, Exort, Invoke, and 10 spell icons
 │   │   └── ranks/       # 8 official Dota 2 rank badge icons (Herald to Immortal)
@@ -173,7 +141,7 @@ invoker-game/
     ├── orb.c            # Orb state manipulation and FIFO queue implementation
     ├── particles.c      # Particle physics integration, rendering, and emitters
     ├── screen.c         # Screen state machine and transition handling
-    ├── screen_gameplay.c# Gameplay screen (Endless, Time Attack & Practice)
+    ├── screen_gameplay.c# Gameplay screen (Endless Survival)
     ├── screen_logo.c    # Animated Raylib splash screen
     ├── screen_menu.c    # Main menu screen (Play, High Score, Settings, Help)
     ├── screen_spellbook.c# Interactive spell catalog screen
