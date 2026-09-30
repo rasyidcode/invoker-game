@@ -16,22 +16,29 @@
 
 typedef enum {
     SCREEN_LOGO = 0,
-    SCREEN_MENU,
-    SCREEN_PRACTICE,
-    SCREEN_TIME_ATTACK,
-    SCREEN_ENDLESS,
-    SCREEN_SPELLBOOK,
-    SCREEN_GAME_OVER
+    SCREEN_GAMEPLAY
 } GameScreen;
 
 typedef enum {
-    MENU_PAGE_MAIN = 0,
-    MENU_PAGE_PLAY,
-    MENU_PAGE_HELP,
-    MENU_PAGE_HIGHSCORE,
-    MENU_PAGE_SETTINGS,
-    MENU_PAGE_CONTROLS
-} MenuPage;
+    GAME_STATE_READY = 0,    // "PRESS [SPACE] OR [ENTER] TO BEGIN" pulsing overlay
+    GAME_STATE_COUNTDOWN,    // 3... 2... 1... GO! (~1.5s)
+    GAME_STATE_PLAYING       // Active endless survival round
+} GameplayState;
+
+typedef enum {
+    PAUSE_PAGE_MAIN = 0,
+    PAUSE_PAGE_HIGHSCORE,
+    PAUSE_PAGE_SETTINGS,
+    PAUSE_PAGE_SPELLBOOK,
+    PAUSE_PAGE_CONTROLS,
+    PAUSE_PAGE_QUIT_CONFIRM
+} PausePage;
+
+typedef struct {
+    bool active;
+    PausePage page;
+    int selectedButton;
+} PauseModal;
 
 typedef struct {
     char text[32];
@@ -60,7 +67,6 @@ typedef struct {
 
 typedef struct {
     bool active;
-    GameplayMode mode;
     int score;
     int totalSpells;
     int streak;
@@ -70,7 +76,7 @@ typedef struct {
     DotaRank rank;
     bool isNewRecord;
     bool defeatedByMiss;
-    int selectedButton; // 0: Try Again, 1: Main Menu
+    int selectedButton; // 0: Try Again, 1: Options / Menu
 } GameOverModal;
 
 typedef struct {
@@ -84,7 +90,7 @@ typedef struct {
     HighScoreData highScores;
 
     // Gameplay state
-    GameplayMode gameMode;
+    GameplayState gameState;
     OrbBuffer orbBuffer;
     SpellSlots spellSlots;
     ActionLog actionLog;
@@ -95,11 +101,12 @@ typedef struct {
     int totalAttempted;
     int totalCorrect;
 
-    // Timer mode
+    // Countdown & Timer
+    float countdownTimer;
+    int countdownLastStep; // 3, 2, 1, 0
     float roundTimer;
     float maxRoundTimer;
     float timeElapsed;
-    bool isTimedMode;
 
     // Animations & Feedback
     QuizFeedback feedback;
@@ -109,11 +116,8 @@ typedef struct {
     float screenShakeTimer;
     float screenShakeIntensity;
 
-    // Menu selection & state
-    MenuPage menuPage;
-    int menuSelected;
-
-    // Game Over Popup Modal
+    // Modals
+    PauseModal pause;
     GameOverModal gameOver;
 
     // Screen transition
@@ -124,7 +128,7 @@ typedef struct {
 void InitGameContext(GameContext *ctx, const GameAssets *assets, AudioManager *audio);
 
 // Reset gameplay state for new session
-void ResetGameplaySession(GameContext *ctx, GameplayMode mode);
+void ResetGameplaySession(GameContext *ctx);
 
 // Screen transition helpers
 void StartTransition(ScreenTransition *trans, GameScreen to);
@@ -139,16 +143,14 @@ void InitLogoScreen(void);
 void UpdateLogoScreen(GameContext *ctx, float dt);
 void DrawLogoScreen(void);
 
-// Screen Modules: Main Menu
-void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse);
-void DrawMenuScreen(GameContext *ctx, Vector2 mouse);
-
-// Screen Modules: Spellbook
-void UpdateSpellbookScreen(GameContext *ctx, float dt, Vector2 mouse);
-void DrawSpellbookScreen(const GameContext *ctx, Vector2 mouse);
-
-// Screen Modules: Gameplay (Practice, Time Attack & Endless)
+// Screen Modules: Gameplay (Endless Mode)
 void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse);
 void DrawGameplayScreen(GameContext *ctx, Vector2 mouse);
+
+// Modal Modules: Pause & Options
+void OpenPauseModal(GameContext *ctx, PausePage page);
+void ClosePauseModal(GameContext *ctx);
+void UpdatePauseModal(GameContext *ctx, float dt, Vector2 mouse);
+void DrawPauseModal(GameContext *ctx, Vector2 mouse);
 
 #endif // SCREEN_H

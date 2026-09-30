@@ -36,7 +36,7 @@ void UpdateLogoScreen(GameContext *ctx, float dt) {
     // Skip splash immediately on user input
     if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) ||
         IsKeyPressed(KEY_ESCAPE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        StartTransition(&ctx->transition, SCREEN_MENU);
+        StartTransition(&ctx->transition, SCREEN_GAMEPLAY);
         return;
     }
 
@@ -69,7 +69,7 @@ void UpdateLogoScreen(GameContext *ctx, float dt) {
                 alpha -= 0.025f;
                 if (alpha <= 0.0f) {
                     alpha = 0.0f;
-                    StartTransition(&ctx->transition, SCREEN_MENU);
+                    StartTransition(&ctx->transition, SCREEN_GAMEPLAY);
                 }
             }
         }

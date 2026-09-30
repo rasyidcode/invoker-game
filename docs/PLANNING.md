@@ -64,14 +64,24 @@ To maintain high velocity and zero friction, extended gameplay styles have been 
 
 ---
 
-## 3. Game Modes
+## 3. Game Mode & Architecture Focus
 
-### Mode 1: Endless Survival (Sudden Death) - Flagship High-Stakes Mode
-- Starts with a **15.0-second countdown**.
-- Every correct spell invocation adds a **+2.5s time bonus** (capped at 25.0s maximum bank to maintain relentless urgency).
+### Endless Survival (Sudden Death) - The Sole Focus
+The game is streamlined exclusively into **Endless Survival** to deliver maximum arcade intensity, instant-action gameplay, and pure muscle-memory mastery:
+- **Instant Arcade Boot**: Bypasses separate title/menu navigation; boots directly past the logo splash into the Endless arena in a **Ready state**.
+- **Ready State Overlay**: Full gameplay HUD is visible underneath with a glowing pulse banner: `PRESS [SPACE] OR [ENTER] TO BEGIN` along with controls and rules hints.
+- **Animated 3-2-1-GO Countdown**: Pressing `[SPACE]` or `[ENTER]` triggers a punchy ~1.5s countdown before the round clock starts.
+- **Relentless 15.0s Clock**: Starts with 15.0 seconds. Every correct spell invocation adds **+2.5s** (capped at 25.0s maximum bank to maintain pressure).
 - **Sudden Death Penalty**: Any missed invoke (wrong multiset combination or attempting to invoke with fewer than 3 orbs) results in **IMMEDIATE DEFEAT**!
-- If the countdown reaches zero, the run terminates immediately.
-- Evaluates player skill on the official **Dota 2 Rank Ladder**:
+- **In-Game Pause & Options Modal**: Pressing `[ESC]` opens a tabbed overlay with:
+  - **Resume**: Return to active game
+  - **Hall of Invocation**: Dedicated Endless personal bests, survival time, and rank badge showcase
+  - **Settings & Audio**: Master, SFX, and Music volume sliders + gameplay toggles
+  - **Spellbook**: All 10 spell formulas and click-to-preview sound cues
+  - **Controls & Rules**: Key reference and Endless rules
+  - **Restart Run**: Resets arena back to Ready state
+  - **Quit Game**: Exit confirmation prompt on Desktop
+- **Dota 2 Rank Ladder**:
   - **Herald**: 0 - 4 spells
   - **Guardian**: 5 - 9 spells
   - **Crusader**: 10 - 14 spells
@@ -80,19 +90,6 @@ To maintain high velocity and zero friction, extended gameplay styles have been 
   - **Ancient**: 30 - 39 spells
   - **Divine**: 40 - 49 spells
   - **Immortal**: 50+ spells
-
-### Mode 2: Speed Trainer / Time Attack
-- Standard fixed **60-second speed test**.
-- High combo multiplier on streaks without sudden-death elimination.
-- Targets APM (actions per minute) and sustained invocation consistency.
-
-### Mode 3: Free Practice / Sandbox
-- Untimed sandbox with zero fail conditions.
-- Real-time display of current orbs, slot shifting, action logging, and audition cues (`D` and `F`).
-
-### Mode 4: Interactive Spell Book & Guide
-- Complete 10-spell catalog with animated elemental badges and click-to-audition Dota 2 sound effects.
-- Controls & reagent guides for novice and advanced players.
 
 ---
 
@@ -108,10 +105,10 @@ invoker-game/
 ├── assets/
 │   ├── icons/           # Quas, Wex, Exort, Invoke, 10 spell icons
 │   │   └── ranks/       # 8 official Dota 2 rank badge icons (Herald to Immortal)
-│   └── sounds/          # Orb clicks, invoke sound, spell audio cues, voice lines
+│   └── sounds/          # Orb clicks, invoke sound, spell audio cues
 ├── include/
 │   ├── assets.h         # Texture and icon asset manager interface
-│   ├── audio.h          # Audio manager interface (SFX, music, voice cues)
+│   ├── audio.h          # Audio manager interface (SFX, music)
 │   ├── config.h         # Game settings, window dimensions, and persistence
 │   ├── log.h            # On-screen action log and event feed
 │   ├── orb.h            # Orb types, buffer logic, formula matching
@@ -119,16 +116,16 @@ invoker-game/
 │   └── spell.h          # Spell definitions, properties, lookup
 └── src/
     ├── assets.c         # Texture and icon loading/unloading
-    ├── audio.c          # Raylib audio loading, sound effects, voice cues
+    ├── audio.c          # Raylib audio loading and sound effects
+    ├── config.c         # Settings and high scores serialization
     ├── log.c            # Action log FIFO ring buffer and HUD rendering
     ├── main.c           # Program entry point, main loop, init/shutdown
     ├── orb.c            # FIFO buffer operations, orb inputs
+    ├── particles.c      # Zero-allocation elemental particle system
     ├── screen.c         # Screen state machine and transition handling
-    ├── screen_gameplay.c# Gameplay screen (Practice & Time Attack)
+    ├── screen_gameplay.c# Endless gameplay screen, ready & countdown overlays
     ├── screen_logo.c    # Animated Raylib splash screen
-    ├── screen_menu.c    # Main menu screen
-    ├── screen_settings.c# Settings screen (audio sliders, gameplay toggles)
-    ├── screen_spellbook.c# Interactive spell catalog screen
+    ├── screen_menu.c    # In-game Pause & Options modal (High Scores, Settings, Spellbook, Controls)
     └── spell.c          # 10-spell registry and combination resolver
 ```
 
@@ -287,7 +284,6 @@ typedef struct {
 
     // Gameplay preferences
     int roundDuration;      // 30 or 60 seconds
-    bool showRecipeHelper;  // Display 10-spell cheat-sheet on screen
     bool showActionFeed;    // Display on-screen event log
     bool screenShake;       // Camera shake on heavy spells
 

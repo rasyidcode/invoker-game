@@ -5,9 +5,7 @@
 #include <stdbool.h>
 
 typedef enum {
-    GAME_MODE_PRACTICE = 0,
-    GAME_MODE_TIME_ATTACK,
-    GAME_MODE_ENDLESS
+    GAME_MODE_ENDLESS = 0
 } GameplayMode;
 
 typedef enum {
@@ -34,15 +32,11 @@ typedef struct {
     // Audio configuration
     float masterVolume;     // 0.0f to 1.0f
     float sfxVolume;        // 0.0f to 1.0f
-    float voiceVolume;      // 0.0f to 1.0f
     float musicVolume;      // 0.0f to 1.0f
     bool sfxMuted;
-    bool voiceMuted;
     bool musicMuted;
 
     // Gameplay preferences
-    int roundDuration;      // 30 or 60 seconds
-    bool showRecipeHelper;  // Display 10-spell cheat-sheet on screen
     bool showActionFeed;    // Display on-screen event log
     bool screenShake;       // Camera shake on heavy spells
 
@@ -51,15 +45,11 @@ typedef struct {
 } GameSettings;
 
 typedef struct {
-    int endlessBestScore;
-    int endlessBestStreak;
-    int endlessBestSpells;
-    DotaRank endlessBestRank;
-
-    int timeAttackBestScore;
-    int timeAttackBestStreak;
-    int timeAttackBestSpells;
-    DotaRank timeAttackBestRank;
+    int bestScore;
+    int bestStreak;
+    int bestSpells;
+    float bestTime;
+    DotaRank bestRank;
 } HighScoreData;
 
 // Settings functions
@@ -71,10 +61,10 @@ void SaveSettings(const GameSettings *settings);
 void InitDefaultHighScores(HighScoreData *scores);
 void LoadHighScores(HighScoreData *scores);
 void SaveHighScores(const HighScoreData *scores);
-bool UpdateHighScores(HighScoreData *scores, GameplayMode mode, int score, int streak, int spells, DotaRank rank);
+bool UpdateHighScores(HighScoreData *scores, int score, int streak, int spells, float timeSurvived, DotaRank rank);
 
 // Dota Rank functions
 RankInfo GetDotaRankInfo(DotaRank rank);
-DotaRank CalculateDotaRank(GameplayMode mode, int correctSpells);
+DotaRank CalculateDotaRank(int correctSpells);
 
 #endif // CONFIG_H

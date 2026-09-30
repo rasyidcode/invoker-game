@@ -2,7 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 
-void ResetGameplaySession(GameContext *ctx, GameplayMode mode) {
+void ResetGameplaySession(GameContext *ctx) {
     if (!ctx) return;
 
     InitOrbBuffer(&ctx->orbBuffer);
@@ -16,22 +16,14 @@ void ResetGameplaySession(GameContext *ctx, GameplayMode mode) {
     ctx->totalCorrect = 0;
     ctx->timeElapsed = 0.0f;
 
-    ctx->gameMode = mode;
-    ctx->gameOver = (GameOverModal){0};
+    ctx->gameState = GAME_STATE_READY;
+    ctx->countdownTimer = 0.0f;
+    ctx->countdownLastStep = 4;
+    ctx->roundTimer = 15.0f;
+    ctx->maxRoundTimer = 15.0f;
 
-    if (mode == GAME_MODE_ENDLESS) {
-        ctx->isTimedMode = true;
-        ctx->roundTimer = 15.0f;
-        ctx->maxRoundTimer = 15.0f;
-    } else if (mode == GAME_MODE_TIME_ATTACK) {
-        ctx->isTimedMode = true;
-        ctx->roundTimer = 60.0f;
-        ctx->maxRoundTimer = 60.0f;
-    } else {
-        ctx->isTimedMode = false;
-        ctx->roundTimer = 0.0f;
-        ctx->maxRoundTimer = 0.0f;
-    }
+    ctx->gameOver = (GameOverModal){0};
+    ctx->pause = (PauseModal){0};
 
     ctx->feedback = (QuizFeedback){0};
     for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
@@ -48,7 +40,6 @@ void ResetGameplaySession(GameContext *ctx, GameplayMode mode) {
 
 static void TriggerGameOver(GameContext *ctx, bool defeatedByMiss) {
     ctx->gameOver.active = true;
-    ctx->gameOver.mode = ctx->gameMode;
     ctx->gameOver.score = ctx->score;
     ctx->gameOver.totalSpells = ctx->totalCorrect;
     ctx->gameOver.streak = ctx->streak;
@@ -58,18 +49,11 @@ static void TriggerGameOver(GameContext *ctx, bool defeatedByMiss) {
     ctx->gameOver.defeatedByMiss = defeatedByMiss;
     ctx->gameOver.selectedButton = 0; // default to Try Again
 
-    ctx->gameOver.rank = CalculateDotaRank(ctx->gameMode, ctx->totalCorrect);
-    ctx->gameOver.isNewRecord = UpdateHighScores(&ctx->highScores, ctx->gameMode,
+    ctx->gameOver.rank = CalculateDotaRank(ctx->totalCorrect);
+    ctx->gameOver.isNewRecord = UpdateHighScores(&ctx->highScores,
                                                  ctx->score, ctx->highestStreak,
-                                                 ctx->totalCorrect, ctx->gameOver.rank);
-
-    if (ctx->gameOver.rank >= DOTA_RANK_DIVINE) {
-        PlayVoiceEvent(ctx->audio, VOICE_VICTORY);
-    } else if (defeatedByMiss || ctx->gameOver.rank <= DOTA_RANK_GUARDIAN) {
-        PlayVoiceEvent(ctx->audio, VOICE_DEFEAT);
-    } else {
-        PlayVoiceEvent(ctx->audio, VOICE_START);
-    }
+                                                 ctx->totalCorrect, ctx->timeElapsed,
+                                                 ctx->gameOver.rank);
 }
 
 static void PushOrbWithAnim(OrbBuffer *buffer, OrbAnimState *anim, OrbType orb) {
@@ -86,70 +70,44 @@ static void PushOrbWithAnim(OrbBuffer *buffer, OrbAnimState *anim, OrbType orb) 
     anim->flashAlpha[2] = 1.0f; // bright flash for newest orb on the right
 }
 
-static void DrawTitle(GameplayMode mode, float timer) {
+static void DrawTitle(float timer, GameplayState state) {
     int centerX = VIRTUAL_WIDTH / 2;
 
     const int gameTitleFs = 38;
-    const char *gameTitle = "PRACTICE MODE";
-    Color titleColor = RAYWHITE;
-
-    if (mode == GAME_MODE_ENDLESS) {
-        gameTitle = "ENDLESS SURVIVAL";
-        titleColor = (Color){255, 80, 80, 255};
-    } else if (mode == GAME_MODE_TIME_ATTACK) {
-        gameTitle = "TIME ATTACK (60s)";
-        titleColor = (Color){255, 190, 60, 255};
-    }
+    const char *gameTitle = "ENDLESS SURVIVAL";
+    Color titleColor = (Color){255, 80, 80, 255};
 
     const int gameTitleW = MeasureText(gameTitle, gameTitleFs);
     DrawText(gameTitle, centerX - gameTitleW / 2, 60, gameTitleFs, titleColor);
 
-    if (mode == GAME_MODE_ENDLESS) {
-        const char *timeStr = TextFormat("TIME REMAINING: %.1fs", timer);
-        int timeFs = 18;
-        int timeW = MeasureText(timeStr, timeFs);
-        Color timeCol = (timer > 5.0f) ? (Color){100, 240, 140, 255} : (Color){255, 60, 60, 255};
-        DrawText(timeStr, centerX - timeW / 2, 108, timeFs, timeCol);
-
-        // Progress bar (scaled against 25s max)
-        int barW = 500;
-        int barH = 6;
-        int barX = centerX - barW / 2;
-        int barY = 134;
-        DrawRectangle(barX, barY, barW, barH, (Color){30, 35, 45, 255});
-        float ratio = timer / 25.0f;
-        if (ratio < 0.0f) ratio = 0.0f;
-        if (ratio > 1.0f) ratio = 1.0f;
-        DrawRectangle(barX, barY, (int)((float)barW * ratio), barH, timeCol);
-
-        const char *warn = "SUDDEN DEATH: Miss = Defeat | Correct = +2.5s";
-        int warnW = MeasureText(warn, 13);
-        DrawText(warn, centerX - warnW / 2, 146, 13, (Color){255, 150, 150, 255});
-    } else if (mode == GAME_MODE_TIME_ATTACK) {
-        const char *timeStr = TextFormat("TIME REMAINING: %.1fs", timer);
-        int timeFs = 18;
-        int timeW = MeasureText(timeStr, timeFs);
-        Color timeCol = (timer > 15.0f) ? (Color){100, 240, 140, 255} : (Color){255, 80, 80, 255};
-        DrawText(timeStr, centerX - timeW / 2, 108, timeFs, timeCol);
-
-        // Progress bar (60s)
-        int barW = 500;
-        int barH = 6;
-        int barX = centerX - barW / 2;
-        int barY = 134;
-        DrawRectangle(barX, barY, barW, barH, (Color){30, 35, 45, 255});
-        float ratio = timer / 60.0f;
-        if (ratio < 0.0f) ratio = 0.0f;
-        DrawRectangle(barX, barY, (int)((float)barW * ratio), barH, timeCol);
-    } else {
-        const int instructionTextFs = 15;
-        const char *instructionText = "Press Q, W, E to fill orbs - Press ESC to return to Menu";
-        const int instructionTextW = MeasureText(instructionText, instructionTextFs);
-        DrawText(instructionText, centerX - instructionTextW / 2, 118, instructionTextFs, (Color){150, 155, 170, 255});
+    const char *timeStr = TextFormat("TIME REMAINING: %.1fs", timer);
+    int timeFs = 18;
+    int timeW = MeasureText(timeStr, timeFs);
+    Color timeCol = (timer > 5.0f) ? (Color){100, 240, 140, 255} : (Color){255, 60, 60, 255};
+    if (state == GAME_STATE_READY) {
+        timeCol = (Color){150, 155, 170, 255};
+        timeStr = "STARTING CLOCK: 15.0s";
+        timeW = MeasureText(timeStr, timeFs);
     }
+    DrawText(timeStr, centerX - timeW / 2, 108, timeFs, timeCol);
+
+    // Progress bar (scaled against 25s max)
+    int barW = 500;
+    int barH = 6;
+    int barX = centerX - barW / 2;
+    int barY = 134;
+    DrawRectangle(barX, barY, barW, barH, (Color){30, 35, 45, 255});
+    float ratio = timer / 25.0f;
+    if (ratio < 0.0f) ratio = 0.0f;
+    if (ratio > 1.0f) ratio = 1.0f;
+    DrawRectangle(barX, barY, (int)((float)barW * ratio), barH, timeCol);
+
+    const char *warn = "SUDDEN DEATH: Miss = Defeat | Correct = +2.5s";
+    int warnW = MeasureText(warn, 13);
+    DrawText(warn, centerX - warnW / 2, 146, 13, (Color){255, 150, 150, 255});
 }
 
-static void DrawScoreBar(int score, int streak) {
+static void DrawScoreBar(int score, int bestScore, int streak) {
     int centerX = VIRTUAL_WIDTH / 2;
     int cardW = 500;
     int cardX = centerX - (cardW / 2);
@@ -158,6 +116,11 @@ static void DrawScoreBar(int score, int streak) {
     // Score on the left
     const char *scoreText = TextFormat("SCORE: %d", score);
     DrawText(scoreText, cardX, barY, 20, GOLD);
+
+    // Personal Best in the center
+    const char *bestText = TextFormat("BEST: %d", bestScore);
+    int bestW = MeasureText(bestText, 17);
+    DrawText(bestText, centerX - bestW / 2, barY + 2, 17, (Color){175, 180, 195, 255});
 
     // Streak on the right
     const char *streakText = TextFormat("STRIKE / STREAK: %d", streak);
@@ -172,7 +135,7 @@ static void DrawTargetSpellCard(SpellId targetSpell, const QuizFeedback *feedbac
 
     int centerX = VIRTUAL_WIDTH / 2;
     int cardW = 500;
-    int cardH = 265;
+    int cardH = 200;
     int cardX = centerX - (cardW / 2);
     int cardY = 225;
 
@@ -188,57 +151,48 @@ static void DrawTargetSpellCard(SpellId targetSpell, const QuizFeedback *feedbac
         borderColor = ColorAlpha(feedback->color, 0.7f + 0.3f * fbAlpha);
     }
     DrawRectangleLinesEx((Rectangle){(float)cardX, (float)cardY, (float)cardW, (float)cardH},
-                         2.0f, borderColor);
+                         (fbAlpha > 0.0f) ? 3.0f : 2.0f, borderColor);
 
+    // Flash background on feedback
     if (fbAlpha > 0.0f) {
-        DrawRectangle(cardX + 2, cardY + 2, cardW - 4, cardH - 4,
-                      ColorAlpha(feedback->color, fbAlpha * 0.18f));
+        DrawRectangle(cardX, cardY, cardW, cardH, ColorAlpha(feedback->color, 0.18f * fbAlpha));
     }
 
-    // Top Header Badge
-    const char *header = "INVOKE THIS SPELL:";
-    int headerFs = 15;
-    int headerW = MeasureText(header, headerFs);
-    DrawText(header, centerX - (headerW / 2), cardY + 14, headerFs, (Color){150, 155, 168, 255});
+    // Top Header Label
+    const char *targetLabel = "TARGET INVOCATION";
+    int labelFs = 13;
+    int labelW = MeasureText(targetLabel, labelFs);
+    DrawText(targetLabel, centerX - labelW / 2, cardY + 12, labelFs, (Color){130, 135, 145, 255});
 
-    // Centered Spell Icon
-    int iconSize = 130;
-    int iconX = centerX - (iconSize / 2);
-    int iconY = cardY + 42;
+    // Spell Icon
+    int iconSize = 88;
+    int iconX = centerX - iconSize / 2;
+    int iconY = cardY + 34;
 
-    if (assets && assets->spellIcons[targetSpell].id > 0) {
-        DrawTexturePro(assets->spellIcons[targetSpell],
-                       (Rectangle){0, 0, (float)assets->spellIcons[targetSpell].width,
-                                   (float)assets->spellIcons[targetSpell].height},
-                       (Rectangle){(float)iconX, (float)iconY, (float)iconSize,
-                                   (float)iconSize},
+    Texture2D icon = assets->spellIcons[targetSpell];
+    if (icon.id > 0) {
+        DrawTexturePro(icon,
+                       (Rectangle){0, 0, (float)icon.width, (float)icon.height},
+                       (Rectangle){(float)iconX, (float)iconY, (float)iconSize, (float)iconSize},
                        (Vector2){0, 0}, 0.0f, WHITE);
+        DrawRectangleLines(iconX, iconY, iconSize, iconSize, borderColor);
     } else {
-        DrawRectangle(iconX, iconY, iconSize, iconSize, (Color){38, 42, 54, 255});
+        DrawRectangle(iconX, iconY, iconSize, iconSize, (Color){35, 40, 52, 255});
+        DrawRectangleLines(iconX, iconY, iconSize, iconSize, borderColor);
     }
-
-    // Accent frame around icon
-    DrawRectangleLinesEx((Rectangle){(float)iconX, (float)iconY, (float)iconSize, (float)iconSize},
-                         2.0f, info->color);
 
     // Spell Name
     int nameFs = 24;
     int nameW = MeasureText(info->name, nameFs);
-    DrawText(info->name, centerX - (nameW / 2), iconY + iconSize + 12, nameFs, RAYWHITE);
+    DrawText(info->name, centerX - nameW / 2, cardY + 132, nameFs, info->color);
 
-    // Floating Feedback Badge
+    // Feedback Text overlay
     if (fbAlpha > 0.0f) {
-        int fbFs = 22;
+        int fbFs = 20;
         int fbW = MeasureText(feedback->text, fbFs);
-        float floatOffset = (1.0f - fbAlpha) * 22.0f;
-        int fbY = (int)((float)(cardY + 16) - floatOffset);
-
-        DrawRectangle(centerX - (fbW / 2) - 14, fbY - 4, fbW + 28, fbFs + 8,
-                      ColorAlpha((Color){10, 12, 16, 255}, fbAlpha * 0.92f));
-        DrawRectangleLines(centerX - (fbW / 2) - 14, fbY - 4, fbW + 28,
-                           fbFs + 8, ColorAlpha(feedback->color, fbAlpha));
-        DrawText(feedback->text, centerX - (fbW / 2), fbY, fbFs,
-                 ColorAlpha(feedback->color, fbAlpha));
+        DrawRectangle(centerX - fbW / 2 - 12, cardY + 162, fbW + 24, 28, (Color){15, 18, 24, 240});
+        DrawRectangleLines(centerX - fbW / 2 - 12, cardY + 162, fbW + 24, 28, ColorAlpha(feedback->color, fbAlpha));
+        DrawText(feedback->text, centerX - fbW / 2, cardY + 166, fbFs, ColorAlpha(feedback->color, fbAlpha));
     }
 }
 
@@ -246,48 +200,53 @@ static void DrawOrbs(const OrbBuffer *buffer, const GameAssets *assets, const Or
     if (!buffer) return;
 
     int centerX = VIRTUAL_WIDTH / 2;
+    int spacing = 153;
     int baseY = 620;
-    int orbSpacing = 153;
-    float baseRadius = 64.0f;
+    float baseRadius = 56.0f;
     float time = (float)GetTime();
 
     for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
-        float posX = (float)(centerX + (i - 1) * orbSpacing);
-        bool hasOrb = (buffer->orbs[i] != ORB_NONE);
-
-        float bobOffset = hasOrb ? sinf(time * 3.5f + (float)i * 2.0f) * 6.0f : 0.0f;
+        float posX = (float)(centerX + (i - 1) * spacing);
+        float bobOffset = sinf(time * 3.5f + (float)i * 2.0f) * 6.0f;
         float currentY = (float)baseY + bobOffset;
 
-        float currentScale = anim ? anim->scale[i] : 1.0f;
-        float currentRadius = baseRadius * currentScale;
+        float scale = (anim) ? anim->scale[i] : 1.0f;
+        float radius = baseRadius * scale;
+        float flash = (anim) ? anim->flashAlpha[i] : 0.0f;
 
-        if (hasOrb) {
+        if (i < buffer->count) {
             OrbType orb = buffer->orbs[i];
-            Color baseColor = GetOrbColor(orb);
-            Texture2D tex = GetCircularOrbTexture(assets, orb);
+            Color col = GetOrbColor(orb);
 
+            // Outer elemental glowing aura
+            DrawCircle((int)posX, (int)currentY, radius + 14.0f, ColorAlpha(col, 0.28f));
+            DrawCircleLines((int)posX, (int)currentY, radius + 8.0f, ColorAlpha(col, 0.65f));
+
+            // Circular orb texture
+            Texture2D tex = GetCircularOrbTexture(assets, orb);
             if (tex.id > 0) {
                 Rectangle src = {0.0f, 0.0f, (float)tex.width, (float)tex.height};
-                Rectangle dest = {posX - currentRadius, currentY - currentRadius,
-                                  currentRadius * 2.0f, currentRadius * 2.0f};
-                DrawTexturePro(tex, src, dest, (Vector2){0, 0}, 0.0f, WHITE);
-
-                DrawCircleLines((int)posX, (int)currentY, currentRadius + 1.0f, baseColor);
-                DrawCircleLines((int)posX, (int)currentY, currentRadius + 2.5f, ColorAlpha(baseColor, 0.65f));
-                DrawCircleLines((int)posX, (int)currentY, currentRadius + 4.5f, ColorAlpha(baseColor, 0.30f));
-
-                if (anim && anim->flashAlpha[i] > 0.0f) {
-                    float expand = (1.0f - anim->flashAlpha[i]) * 24.0f;
-                    DrawCircleLines((int)posX, (int)currentY, currentRadius + expand,
-                                    ColorAlpha(WHITE, anim->flashAlpha[i] * 0.8f));
-                }
+                Rectangle dest = {posX, currentY, radius * 2.0f, radius * 2.0f};
+                Vector2 origin = {radius, radius};
+                DrawTexturePro(tex, src, dest, origin, 0.0f, WHITE);
             } else {
-                DrawCircle((int)posX, (int)currentY, currentRadius, baseColor);
+                DrawCircle((int)posX, (int)currentY, radius, col);
+            }
+
+            // Crisp inner and outer border rings
+            DrawCircleLines((int)posX, (int)currentY, radius, ColorAlpha(WHITE, 0.85f));
+            DrawCircleLines((int)posX, (int)currentY, radius + 1.5f, col);
+
+            // Punch flash overlay on pop
+            if (flash > 0.001f) {
+                DrawCircle((int)posX, (int)currentY, radius, ColorAlpha(WHITE, flash * 0.75f));
             }
         } else {
-            DrawCircle((int)posX, (int)currentY, baseRadius, (Color){20, 22, 28, 255});
-            DrawCircleLines((int)posX, (int)currentY, baseRadius, (Color){50, 55, 68, 255});
-            DrawCircleLines((int)posX, (int)currentY, baseRadius * 0.55f, (Color){35, 38, 48, 255});
+            // Empty orb slot socket
+            DrawCircle((int)posX, (int)currentY, radius, (Color){18, 20, 26, 255});
+            DrawCircleLines((int)posX, (int)currentY, radius, (Color){45, 50, 65, 255});
+            DrawCircleLines((int)posX, (int)currentY, radius - 4.0f, (Color){28, 32, 42, 255});
+            DrawText("?", (int)posX - 7, (int)currentY - 14, 26, (Color){60, 66, 85, 255});
         }
     }
 }
@@ -295,27 +254,31 @@ static void DrawOrbs(const OrbBuffer *buffer, const GameAssets *assets, const Or
 static void DrawAbilitySlots(const SpellSlots *spellSlots, const GameAssets *assets, const InvokePulse *pulse) {
     int slotSize = 100;
     int gap = 10;
-    int totalWidth = (slotSize * 6) + (gap * 5);
-    int startX = (VIRTUAL_WIDTH - totalWidth) / 2;
+    int totalW = (slotSize * 6) + (gap * 5); // 650px
+    int startX = (VIRTUAL_WIDTH - totalW) / 2;
     int posY = 770;
 
-    typedef struct {
+    struct {
         const char *name;
-        const char *hotkey;
-        Texture2D icon;
-        Color color;
-        bool isActive;
         int key;
-    } AbilitySlotRender;
-
-    AbilitySlotRender slots[6] = {
-        {"Quas", "Q", assets->orbIcons[ORB_QUAS], (Color){0, 210, 255, 255}, true, KEY_Q},
-        {"Wex", "W", assets->orbIcons[ORB_WEX], (Color){224, 64, 251, 255}, true, KEY_W},
-        {"Exort", "E", assets->orbIcons[ORB_EXORT], (Color){255, 87, 34, 255}, true, KEY_E},
-        {"Slot 1", "D", (Texture2D){0}, (Color){60, 65, 80, 255}, false, KEY_D},
-        {"Slot 2", "F", (Texture2D){0}, (Color){60, 65, 80, 255}, false, KEY_F},
-        {"Invoke", "R", assets->invokeIcon, (Color){186, 85, 211, 255}, true, KEY_R}
+        const char *keyName;
+        Color color;
+        Texture2D icon;
+        bool isActive;
+    } slots[6] = {
+        {"QUAS", KEY_Q, "Q", (Color){0, 210, 255, 255}, assets ? assets->spellIcons[SPELL_COLD_SNAP] : (Texture2D){0}, true},
+        {"WEX", KEY_W, "W", (Color){224, 64, 251, 255}, assets ? assets->spellIcons[SPELL_EMP] : (Texture2D){0}, true},
+        {"EXORT", KEY_E, "E", (Color){255, 87, 34, 255}, assets ? assets->spellIcons[SPELL_SUN_STRIKE] : (Texture2D){0}, true},
+        {"EMPTY", KEY_D, "D", (Color){70, 75, 90, 255}, (Texture2D){0}, false},
+        {"EMPTY", KEY_F, "F", (Color){70, 75, 90, 255}, (Texture2D){0}, false},
+        {"INVOKE", KEY_R, "R", (Color){186, 85, 211, 255}, (Texture2D){0}, true}
     };
+
+    if (assets) {
+        slots[0].icon = GetCircularOrbTexture(assets, ORB_QUAS);
+        slots[1].icon = GetCircularOrbTexture(assets, ORB_WEX);
+        slots[2].icon = GetCircularOrbTexture(assets, ORB_EXORT);
+    }
 
     if (spellSlots) {
         if (spellSlots->slot1 != SPELL_NONE) {
@@ -358,25 +321,23 @@ static void DrawAbilitySlots(const SpellSlots *spellSlots, const GameAssets *ass
 
             int nameFs = 12;
             int textW = MeasureText(slots[i].name, nameFs);
-            Color textColor = slots[i].isActive ? RAYWHITE : DARKGRAY;
-            DrawText(slots[i].name, posX + (slotSize - textW) / 2,
-                     drawY + (slotSize / 2) - 6, nameFs, textColor);
+            DrawText(slots[i].name, posX + (slotSize - textW) / 2, drawY + (slotSize / 2) - 8, nameFs,
+                     slots[i].isActive ? slots[i].color : (Color){70, 75, 90, 255});
         }
 
-        Color borderColor = isPressed ? WHITE : (slots[i].isActive ? slots[i].color : (Color){45, 50, 60, 255});
-        float borderThickness = isPressed ? 2.5f : 1.0f;
-        DrawRectangleLinesEx((Rectangle){(float)posX, (float)drawY, (float)slotSize, (float)slotSize},
-                             borderThickness, borderColor);
+        Color borderColor = slots[i].isActive ? slots[i].color : (Color){45, 50, 65, 255};
+        DrawRectangleLines(posX, drawY, slotSize, slotSize, borderColor);
 
-        if (slots[i].isActive && !isPressed) {
-            DrawRectangle(posX, drawY + slotSize - 5, slotSize, 5, slots[i].color);
-        }
-
-        int hkFs = 16;
-        int hkW = MeasureText(slots[i].hotkey, hkFs);
-        DrawRectangle(posX + slotSize - hkW - 8, drawY + slotSize - 26, hkW + 6, 20, (Color){0, 0, 0, 190});
-        Color hkColor = isPressed ? WHITE : GOLD;
-        DrawText(slots[i].hotkey, posX + slotSize - hkW - 5, drawY + slotSize - 24, hkFs, hkColor);
+        // Hotkey badge (bottom right)
+        int badgeW = 24;
+        int badgeH = 20;
+        int badgeX = posX + slotSize - badgeW - 4;
+        int badgeY = drawY + slotSize - badgeH - 4;
+        DrawRectangle(badgeX, badgeY, badgeW, badgeH, (Color){12, 14, 18, 230});
+        DrawRectangleLines(badgeX, badgeY, badgeW, badgeH, borderColor);
+        int kFs = 13;
+        int kW = MeasureText(slots[i].keyName, kFs);
+        DrawText(slots[i].keyName, badgeX + (badgeW - kW) / 2, badgeY + 3, kFs, GOLD);
 
         if (i == 5 && pulse && pulse->timer > 0.0f) {
             float pRatio = pulse->timer / pulse->maxDuration;
@@ -388,6 +349,73 @@ static void DrawAbilitySlots(const SpellSlots *spellSlots, const GameAssets *ass
                             ColorAlpha((Color){186, 85, 211, 255}, pRatio * 0.6f));
         }
     }
+}
+
+static void DrawReadyOverlay(void) {
+    int centerX = VIRTUAL_WIDTH / 2;
+    float time = (float)GetTime();
+    float pulse = 0.85f + 0.15f * sinf(time * 5.0f);
+
+    int bannerW = 540;
+    int bannerH = 140;
+    int bannerX = centerX - bannerW / 2;
+    int bannerY = 515;
+
+    // Dark translucent backdrop behind center prompt
+    DrawRectangle(bannerX, bannerY, bannerW, bannerH, (Color){15, 18, 26, 235});
+    DrawRectangleLinesEx((Rectangle){(float)bannerX, (float)bannerY, (float)bannerW, (float)bannerH},
+                         2.0f, ColorAlpha(GOLD, pulse));
+
+    const char *prompt = "PRESS [SPACE] OR [ENTER] TO BEGIN";
+    int pFs = 24;
+    int pW = MeasureText(prompt, pFs);
+    DrawText(prompt, centerX - pW / 2, bannerY + 28, pFs, ColorAlpha(GOLD, pulse));
+
+    const char *hint1 = "Channel the elements • Sudden death on any miss (+2.5s per spell)";
+    int h1Fs = 13;
+    DrawText(hint1, centerX - MeasureText(hint1, h1Fs) / 2, bannerY + 70, h1Fs, (Color){220, 225, 240, 255});
+
+    const char *hint2 = "Press [ESC] for Pause, High Scores, Settings & Spellbook";
+    int h2Fs = 13;
+    DrawText(hint2, centerX - MeasureText(hint2, h2Fs) / 2, bannerY + 98, h2Fs, (Color){150, 155, 175, 255});
+}
+
+static void DrawCountdownOverlay(float timer) {
+    int centerX = VIRTUAL_WIDTH / 2;
+    int centerY = 585;
+
+    const char *text = "3";
+    Color col = (Color){0, 210, 255, 255}; // Quas
+    float progress = 0.0f;
+
+    if (timer > 1.2f) {
+        text = "3";
+        col = (Color){0, 210, 255, 255};
+        progress = (timer - 1.2f) / 0.4f;
+    } else if (timer > 0.8f) {
+        text = "2";
+        col = (Color){224, 64, 251, 255}; // Wex
+        progress = (timer - 0.8f) / 0.4f;
+    } else if (timer > 0.4f) {
+        text = "1";
+        col = (Color){255, 87, 34, 255}; // Exort
+        progress = (timer - 0.4f) / 0.4f;
+    } else {
+        text = "GO!";
+        col = GOLD;
+        progress = timer / 0.4f;
+    }
+
+    float scale = 1.0f + progress * 0.45f;
+    int baseFs = (timer <= 0.4f) ? 80 : 96;
+    int fs = (int)((float)baseFs * scale);
+
+    // Glowing aura behind number
+    DrawCircle(centerX, centerY, 80.0f * scale, ColorAlpha(col, 0.25f));
+    DrawCircleLines(centerX, centerY, 85.0f * scale, ColorAlpha(col, 0.6f));
+
+    int tW = MeasureText(text, fs);
+    DrawText(text, centerX - tW / 2, centerY - fs / 2, fs, col);
 }
 
 static void DrawGameOverModal(const GameContext *ctx, Vector2 mouse) {
@@ -414,24 +442,19 @@ static void DrawGameOverModal(const GameContext *ctx, Vector2 mouse) {
     const char *header = "RUN OVER";
     Color headerCol = (Color){255, 100, 100, 255};
 
-    if (ctx->gameOver.mode == GAME_MODE_ENDLESS) {
-        if (ctx->gameOver.defeatedByMiss) {
-            header = "SUDDEN DEATH MISS!";
-            headerCol = (Color){255, 60, 60, 255};
-        } else {
-            header = "TIME EXPIRED!";
-            headerCol = (Color){255, 160, 80, 255};
-        }
+    if (ctx->gameOver.defeatedByMiss) {
+        header = "SUDDEN DEATH MISS!";
+        headerCol = (Color){255, 60, 60, 255};
     } else {
-        header = "TIME'S UP!";
-        headerCol = (Color){255, 200, 80, 255};
+        header = "TIME EXPIRED!";
+        headerCol = (Color){255, 160, 80, 255};
     }
 
     int headFs = 32;
     int headW = MeasureText(header, headFs);
     DrawText(header, centerX - headW / 2, modalY + 32, headFs, headerCol);
 
-    const char *subMode = (ctx->gameOver.mode == GAME_MODE_ENDLESS) ? "ENDLESS SURVIVAL RESULTS" : "TIME ATTACK RESULTS";
+    const char *subMode = "ENDLESS SURVIVAL RESULTS";
     int subFs = 15;
     int subW = MeasureText(subMode, subFs);
     DrawText(subMode, centerX - subW / 2, modalY + 74, subFs, (Color){160, 165, 180, 255});
@@ -449,7 +472,6 @@ static void DrawGameOverModal(const GameContext *ctx, Vector2 mouse) {
         Rectangle dst = {(float)centerX - badgeSize * 0.5f, (float)circleY - badgeSize * 0.5f, badgeSize, badgeSize};
         DrawTexturePro(rankTex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
     } else {
-        // Procedural fallback
         float circleRadius = 52.0f;
         DrawCircle(centerX, circleY, circleRadius, (Color){15, 18, 25, 255});
         DrawCircleLines(centerX, circleY, circleRadius, rank.color);
@@ -534,10 +556,10 @@ static void DrawGameOverModal(const GameContext *ctx, Vector2 mouse) {
     DrawText("TRY AGAIN", btn1X + (btnW - MeasureText("TRY AGAIN", 18)) / 2, btnY + 14, 18, sel1 ? (Color){255, 245, 220, 255} : RAYWHITE);
     DrawText("[ ENTER / SPACE ]", btn1X + (btnW - MeasureText("[ ENTER / SPACE ]", 11)) / 2, btnY + 38, 11, sel1 ? GOLD : (Color){130, 135, 150, 255});
 
-    // Button 2: Main Menu
+    // Button 2: Options / Menu
     DrawRectangle(btn2X, btnY, btnW, btnH, sel2 ? (Color){38, 48, 70, 255} : (Color){25, 30, 42, 255});
     DrawRectangleLinesEx((Rectangle){(float)btn2X, (float)btnY, (float)btnW, (float)btnH}, sel2 ? 2.5f : 1.0f, sel2 ? GOLD : (Color){60, 65, 85, 255});
-    DrawText("MAIN MENU", btn2X + (btnW - MeasureText("MAIN MENU", 18)) / 2, btnY + 14, 18, sel2 ? (Color){255, 245, 220, 255} : RAYWHITE);
+    DrawText("OPTIONS / MENU", btn2X + (btnW - MeasureText("OPTIONS / MENU", 18)) / 2, btnY + 14, 18, sel2 ? (Color){255, 245, 220, 255} : RAYWHITE);
     DrawText("[ ESCAPE ]", btn2X + (btnW - MeasureText("[ ESCAPE ]", 11)) / 2, btnY + 38, 11, sel2 ? GOLD : (Color){130, 135, 150, 255});
 
     const char *ftr = "Select with [ARROWS] or [MOUSE] and press [ENTER]";
@@ -546,7 +568,7 @@ static void DrawGameOverModal(const GameContext *ctx, Vector2 mouse) {
 
 void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
     // -------------------------------------------------------------
-    // FRAME TIMERS & ACTIVE EFFECTS (DECAY EVEN DURING MODAL)
+    // FRAME TIMERS & ACTIVE EFFECTS (DECAY EVEN DURING MODAL/PAUSE)
     // -------------------------------------------------------------
     if (ctx->screenShakeTimer > 0.0f) {
         ctx->screenShakeTimer -= dt;
@@ -554,6 +576,14 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
     }
 
     UpdateParticleSystem(&ctx->particles, dt);
+
+    // -------------------------------------------------------------
+    // PAUSE MODAL ACTIVE
+    // -------------------------------------------------------------
+    if (ctx->pause.active) {
+        UpdatePauseModal(ctx, dt, mouse);
+        return;
+    }
 
     // -------------------------------------------------------------
     // MODAL STATE: GAME OVER POPUP
@@ -590,27 +620,19 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
         bool click1 = (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, r1));
         bool click2 = (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, r2));
 
-        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || click1 || click2) {
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || click1 || (click2 && ctx->gameOver.selectedButton == 0)) {
             int choice = (click1) ? 0 : (click2 ? 1 : ctx->gameOver.selectedButton);
             if (choice == 0) {
-                // Restart mode
+                // Restart to Ready State
                 PlayInvokeSound(ctx->audio);
-                ResetGameplaySession(ctx, ctx->gameMode);
-            } else {
-                // Return to Main Menu
-                PlayOrbSound(ctx->audio, ORB_QUAS);
-                ctx->screenShakeTimer = 0.0f;
-                ctx->screenShakeIntensity = 0.0f;
-                StartTransition(&ctx->transition, SCREEN_MENU);
+                ResetGameplaySession(ctx);
+                return;
             }
-            return;
         }
 
-        if (IsKeyPressed(KEY_ESCAPE)) {
-            PlayOrbSound(ctx->audio, ORB_QUAS);
-            ctx->screenShakeTimer = 0.0f;
-            ctx->screenShakeIntensity = 0.0f;
-            StartTransition(&ctx->transition, SCREEN_MENU);
+        if (IsKeyPressed(KEY_ESCAPE) || click2 || (IsKeyPressed(KEY_ENTER) && ctx->gameOver.selectedButton == 1)) {
+            // Open Options / Pause modal
+            OpenPauseModal(ctx, PAUSE_PAGE_MAIN);
             return;
         }
 
@@ -618,25 +640,69 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
     }
 
     // -------------------------------------------------------------
-    // ACTIVE GAMEPLAY UPDATE
+    // STATE: READY / AWAITING START
+    // -------------------------------------------------------------
+    if (ctx->gameState == GAME_STATE_READY) {
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            OpenPauseModal(ctx, PAUSE_PAGE_MAIN);
+            return;
+        }
+
+        if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            ctx->gameState = GAME_STATE_COUNTDOWN;
+            ctx->countdownTimer = 1.6f;
+            ctx->countdownLastStep = 4;
+            PlayOrbSound(ctx->audio, ORB_WEX);
+            return;
+        }
+
+        return;
+    }
+
+    // -------------------------------------------------------------
+    // STATE: COUNTDOWN (3... 2... 1... GO!)
+    // -------------------------------------------------------------
+    if (ctx->gameState == GAME_STATE_COUNTDOWN) {
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            OpenPauseModal(ctx, PAUSE_PAGE_MAIN);
+            return;
+        }
+
+        ctx->countdownTimer -= dt;
+
+        int step = (int)(ctx->countdownTimer / 0.4f); // 3, 2, 1, 0
+        if (step != ctx->countdownLastStep) {
+            ctx->countdownLastStep = step;
+            if (step >= 1 && step <= 3) {
+                PlayOrbSound(ctx->audio, ORB_WEX);
+            } else if (step == 0) {
+                PlayInvokeSound(ctx->audio);
+            }
+        }
+
+        if (ctx->countdownTimer <= 0.0f) {
+            ctx->countdownTimer = 0.0f;
+            ctx->gameState = GAME_STATE_PLAYING;
+        }
+
+        return;
+    }
+
+    // -------------------------------------------------------------
+    // STATE: ACTIVE GAMEPLAY
     // -------------------------------------------------------------
     if (IsKeyPressed(KEY_ESCAPE)) {
-        PlayOrbSound(ctx->audio, ORB_WEX);
-        ctx->screenShakeTimer = 0.0f;
-        ctx->screenShakeIntensity = 0.0f;
-        StartTransition(&ctx->transition, SCREEN_MENU);
+        OpenPauseModal(ctx, PAUSE_PAGE_MAIN);
         return;
     }
 
     ctx->timeElapsed += dt;
 
-    if (ctx->isTimedMode) {
-        ctx->roundTimer -= dt;
-        if (ctx->roundTimer <= 0.0f) {
-            ctx->roundTimer = 0.0f;
-            TriggerGameOver(ctx, false);
-            return;
-        }
+    ctx->roundTimer -= dt;
+    if (ctx->roundTimer <= 0.0f) {
+        ctx->roundTimer = 0.0f;
+        TriggerGameOver(ctx, false);
+        return;
     }
 
     if (ctx->feedback.timer > 0.0f) {
@@ -658,42 +724,47 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
         }
     }
 
-    for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
-        ctx->orbAnim.scale[i] += (1.0f - ctx->orbAnim.scale[i]) * 14.0f * dt;
-        ctx->orbAnim.flashAlpha[i] -= 3.5f * dt;
-        if (ctx->orbAnim.flashAlpha[i] < 0.0f) ctx->orbAnim.flashAlpha[i] = 0.0f;
+    // Elemental Orb Inputs
+    int abilityStartX = (VIRTUAL_WIDTH - ((100 * 6) + (10 * 5))) / 2;
+    Vector2 qPos = { (float)(abilityStartX + 0 * 110 + 50), 820.0f };
+    Vector2 wPos = { (float)(abilityStartX + 1 * 110 + 50), 820.0f };
+    Vector2 ePos = { (float)(abilityStartX + 2 * 110 + 50), 820.0f };
+
+    if (IsKeyPressed(KEY_Q)) {
+        PushOrbWithAnim(&ctx->orbBuffer, &ctx->orbAnim, ORB_QUAS);
+        EmitOrbParticles(&ctx->particles, qPos, ORB_QUAS, 10);
+        PlayOrbSound(ctx->audio, ORB_QUAS);
+    }
+    if (IsKeyPressed(KEY_W)) {
+        PushOrbWithAnim(&ctx->orbBuffer, &ctx->orbAnim, ORB_WEX);
+        EmitOrbParticles(&ctx->particles, wPos, ORB_WEX, 10);
+        PlayOrbSound(ctx->audio, ORB_WEX);
+    }
+    if (IsKeyPressed(KEY_E)) {
+        PushOrbWithAnim(&ctx->orbBuffer, &ctx->orbAnim, ORB_EXORT);
+        EmitOrbParticles(&ctx->particles, ePos, ORB_EXORT, 10);
+        PlayOrbSound(ctx->audio, ORB_EXORT);
     }
 
+    // Orb animation decays
+    for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
+        if (ctx->orbAnim.scale[i] > 1.0f) {
+            ctx->orbAnim.scale[i] -= dt * 3.0f;
+            if (ctx->orbAnim.scale[i] < 1.0f) ctx->orbAnim.scale[i] = 1.0f;
+        }
+        if (ctx->orbAnim.flashAlpha[i] > 0.0f) {
+            ctx->orbAnim.flashAlpha[i] -= dt * 4.5f;
+            if (ctx->orbAnim.flashAlpha[i] < 0.0f) ctx->orbAnim.flashAlpha[i] = 0.0f;
+        }
+    }
+
+    // Invoke Pulse decay
     if (ctx->invokePulse.timer > 0.0f) {
         ctx->invokePulse.timer -= dt;
         if (ctx->invokePulse.timer < 0.0f) ctx->invokePulse.timer = 0.0f;
     }
 
-    int abilityStartX = (VIRTUAL_WIDTH - ((100 * 6) + (10 * 5))) / 2;
-    float rightOrbX = (float)(VIRTUAL_WIDTH / 2 + 153);
-
-    if (IsKeyPressed(KEY_Q)) {
-        PushOrbWithAnim(&ctx->orbBuffer, &ctx->orbAnim, ORB_QUAS);
-        LogOrbPress(&ctx->actionLog, ORB_QUAS);
-        PlayOrbSound(ctx->audio, ORB_QUAS);
-        EmitOrbParticles(&ctx->particles, (Vector2){rightOrbX, 620.0f}, ORB_QUAS, 14);
-        EmitOrbParticles(&ctx->particles, (Vector2){(float)(abilityStartX + 50), 820.0f}, ORB_QUAS, 6);
-    }
-    if (IsKeyPressed(KEY_W)) {
-        PushOrbWithAnim(&ctx->orbBuffer, &ctx->orbAnim, ORB_WEX);
-        LogOrbPress(&ctx->actionLog, ORB_WEX);
-        PlayOrbSound(ctx->audio, ORB_WEX);
-        EmitOrbParticles(&ctx->particles, (Vector2){rightOrbX, 620.0f}, ORB_WEX, 16);
-        EmitOrbParticles(&ctx->particles, (Vector2){(float)(abilityStartX + 160), 820.0f}, ORB_WEX, 6);
-    }
-    if (IsKeyPressed(KEY_E)) {
-        PushOrbWithAnim(&ctx->orbBuffer, &ctx->orbAnim, ORB_EXORT);
-        LogOrbPress(&ctx->actionLog, ORB_EXORT);
-        PlayOrbSound(ctx->audio, ORB_EXORT);
-        EmitOrbParticles(&ctx->particles, (Vector2){rightOrbX, 620.0f}, ORB_EXORT, 14);
-        EmitOrbParticles(&ctx->particles, (Vector2){(float)(abilityStartX + 270), 820.0f}, ORB_EXORT, 6);
-    }
-
+    // Invoke Spell [R]
     if (IsKeyPressed(KEY_R)) {
         ctx->invokePulse.timer = 0.35f;
         ctx->invokePulse.maxDuration = 0.35f;
@@ -703,25 +774,16 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
         Vector2 cardCenter = { (float)(VIRTUAL_WIDTH / 2), 350.0f };
 
         if (ctx->orbBuffer.count < MAX_ACTIVE_ORBS) {
+            // Sudden death on missing orbs
             EmitInvokeBurst(&ctx->particles, invokeCenter, (Color){255, 180, 50, 255}, 12);
-            if (ctx->gameMode == GAME_MODE_ENDLESS) {
-                // In Endless, incomplete orbs counts as Miss -> Sudden Death!
-                ctx->totalAttempted++;
-                ctx->feedback.timer = 0.85f;
-                ctx->feedback.maxDuration = 0.85f;
-                ctx->feedback.color = (Color){255, 65, 65, 255};
-                snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "NEED 3 ORBS!");
-                LogSpellInvoke(&ctx->actionLog, SPELL_NONE, &ctx->orbBuffer, false);
-                TriggerGameOver(ctx, true);
-                return;
-            } else {
-                ctx->feedback.timer = 0.85f;
-                ctx->feedback.maxDuration = 0.85f;
-                ctx->feedback.color = (Color){255, 180, 50, 255};
-                snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "NEED 3 ORBS");
-                LogSpellInvoke(&ctx->actionLog, SPELL_NONE, &ctx->orbBuffer, false);
-                PlayQuizFeedbackSound(ctx->audio, false);
-            }
+            ctx->totalAttempted++;
+            ctx->feedback.timer = 0.85f;
+            ctx->feedback.maxDuration = 0.85f;
+            ctx->feedback.color = (Color){255, 65, 65, 255};
+            snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "NEED 3 ORBS!");
+            LogSpellInvoke(&ctx->actionLog, SPELL_NONE, &ctx->orbBuffer, false);
+            TriggerGameOver(ctx, true);
+            return;
         } else {
             SpellId invokedSpell = ResolveSpell(&ctx->orbBuffer);
 
@@ -741,33 +803,16 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
                 ctx->screenShakeTimer = 0.35f;
                 ctx->screenShakeIntensity = 10.0f;
 
-                if (ctx->gameMode == GAME_MODE_ENDLESS) {
-                    // Endless Mode: grant +2.5s time bonus!
-                    ctx->roundTimer += 2.5f;
-                    if (ctx->roundTimer > 25.0f) ctx->roundTimer = 25.0f; // cap max breathing room at 25s
+                // Grant +2.5s time bonus (capped at 25s)
+                ctx->roundTimer += 2.5f;
+                if (ctx->roundTimer > 25.0f) ctx->roundTimer = 25.0f;
 
-                    ctx->feedback.timer = 0.85f;
-                    ctx->feedback.maxDuration = 0.85f;
-                    ctx->feedback.color = (Color){50, 240, 100, 255};
-                    snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "+%d (+2.5s)", points);
-                } else {
-                    ctx->feedback.timer = 0.85f;
-                    ctx->feedback.maxDuration = 0.85f;
-                    ctx->feedback.color = (Color){50, 240, 100, 255};
-                    snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "+%d", points);
-                }
+                ctx->feedback.timer = 0.85f;
+                ctx->feedback.maxDuration = 0.85f;
+                ctx->feedback.color = (Color){50, 240, 100, 255};
+                snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "+%d (+2.5s)", points);
 
                 PlayQuizFeedbackSound(ctx->audio, true);
-
-                if (ctx->streak == 5) {
-                    PlayVoiceEvent(ctx->audio, VOICE_STREAK_5);
-                } else if (ctx->streak == 10) {
-                    PlayVoiceEvent(ctx->audio, VOICE_STREAK_10);
-                } else if (ctx->streak == 15) {
-                    PlayVoiceEvent(ctx->audio, VOICE_STREAK_15);
-                } else if (ctx->streak == 20) {
-                    PlayVoiceEvent(ctx->audio, VOICE_STREAK_20);
-                }
 
                 SpellId nextSpell;
                 do {
@@ -775,36 +820,23 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
                 } while (nextSpell == ctx->targetSpell);
                 ctx->targetSpell = nextSpell;
             } else {
+                // Sudden Death miss on wrong spell
                 ctx->totalAttempted++;
                 EmitInvokeBurst(&ctx->particles, invokeCenter, (Color){255, 65, 65, 255}, 16);
                 ctx->screenShakeTimer = 0.2f;
                 ctx->screenShakeIntensity = 6.0f;
 
-                if (ctx->gameMode == GAME_MODE_ENDLESS) {
-                    // Sudden Death: any miss ends the game immediately!
-                    ctx->streak = 0;
-                    ctx->feedback.timer = 0.85f;
-                    ctx->feedback.maxDuration = 0.85f;
-                    ctx->feedback.color = (Color){255, 65, 65, 255};
-                    snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "MISS!");
+                ctx->streak = 0;
+                ctx->feedback.timer = 0.85f;
+                ctx->feedback.maxDuration = 0.85f;
+                ctx->feedback.color = (Color){255, 65, 65, 255};
+                snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "MISS!");
 
-                    bool changed = InvokeSpell(&ctx->spellSlots, &ctx->orbBuffer);
-                    LogSpellInvoke(&ctx->actionLog, invokedSpell, &ctx->orbBuffer, changed);
+                bool changed = InvokeSpell(&ctx->spellSlots, &ctx->orbBuffer);
+                LogSpellInvoke(&ctx->actionLog, invokedSpell, &ctx->orbBuffer, changed);
 
-                    TriggerGameOver(ctx, true);
-                    return;
-                } else {
-                    if (ctx->streak >= 5) {
-                        PlayVoiceEvent(ctx->audio, VOICE_MISS);
-                    }
-                    ctx->streak = 0;
-                    ctx->feedback.timer = 0.85f;
-                    ctx->feedback.maxDuration = 0.85f;
-                    ctx->feedback.color = (Color){255, 65, 65, 255};
-                    snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "MISS!");
-
-                    PlayQuizFeedbackSound(ctx->audio, false);
-                }
+                TriggerGameOver(ctx, true);
+                return;
             }
 
             bool changed = InvokeSpell(&ctx->spellSlots, &ctx->orbBuffer);
@@ -843,8 +875,8 @@ void DrawGameplayScreen(GameContext *ctx, Vector2 mouse) {
 
     int centerX = VIRTUAL_WIDTH / 2;
 
-    DrawTitle(ctx->gameMode, ctx->roundTimer);
-    DrawScoreBar(ctx->score, ctx->streak);
+    DrawTitle(ctx->roundTimer, ctx->gameState);
+    DrawScoreBar(ctx->score, ctx->highScores.bestScore, ctx->streak);
     DrawTargetSpellCard(ctx->targetSpell, &ctx->feedback, ctx->assets);
 
     // Render elemental particle pool in 2.5D layer
@@ -856,10 +888,24 @@ void DrawGameplayScreen(GameContext *ctx, Vector2 mouse) {
     int feedW = (100 * 6) + (10 * 5); // 650px
     int feedY = 895;
     int feedH = (VIRTUAL_HEIGHT - 25) - feedY; // 360px bottom coverage
-    DrawActionLog(&ctx->actionLog, centerX, feedY, feedW, feedH);
+    if (ctx->settings.showActionFeed) {
+        DrawActionLog(&ctx->actionLog, centerX, feedY, feedW, feedH);
+    }
 
-    // If game over modal is active, draw it on top!
+    // Overlays
+    if (ctx->gameState == GAME_STATE_READY) {
+        DrawReadyOverlay();
+    } else if (ctx->gameState == GAME_STATE_COUNTDOWN) {
+        DrawCountdownOverlay(ctx->countdownTimer);
+    }
+
+    // If game over modal is active, draw it
     if (ctx->gameOver.active) {
         DrawGameOverModal(ctx, mouse);
+    }
+
+    // If pause modal is active, draw it on the very top!
+    if (ctx->pause.active) {
+        DrawPauseModal(ctx, mouse);
     }
 }

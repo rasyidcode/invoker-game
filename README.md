@@ -6,7 +6,7 @@ A fast-paced reaction and muscle-memory training game modeled after the iconic s
 
 ## Overview
 
-The Invoker Game challenges players to rapidly manipulate three elemental reagents—**Quas**, **Wex**, and **Exort**—and press **Invoke** to manifest one of 10 distinct, devastating spells. Whether practicing in sandbox mode or racing the clock in time-attack challenges, this game helps develop the lightning-fast muscle memory required to master the Arsenal Magus.
+The Invoker Game challenges players to rapidly manipulate three elemental reagents—**Quas**, **Wex**, and **Exort**—and press **Invoke** to manifest one of 10 distinct, devastating spells. Built strictly around high-stakes **Endless Survival**, players must channel spells under intense time pressure where every correct invoke buys precious seconds and any mistake causes instant defeat.
 
 ---
 
@@ -27,32 +27,18 @@ The Invoker Game challenges players to rapidly manipulate three elemental reagen
    - **Slot 1 (Primary, key `D`)**
    - **Slot 2 (Secondary, key `F`)**
    - Invoking a new spell shifts the previous Slot 1 spell into Slot 2.
-### Spell Reference Table
-
-| Spell Name | Recipe | Q | W | E | Key | Effect |
-| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Cold Snap** | `Q Q Q` | 3 | 0 | 0 | `D` / `F` | Freezes target repeatedly upon taking damage |
-| **Ghost Walk** | `Q Q W` | 2 | 1 | 0 | `D` / `F` | Invisibility with aura slowing nearby enemies |
-| **Ice Wall** | `Q Q E` | 2 | 0 | 1 | `D` / `F` | Impassable wall of ice causing heavy slows |
-| **EMP** | `W W W` | 0 | 3 | 0 | `D` / `F` | Charges an electromagnetic pulse burning mana |
-| **Tornado** | `W W Q` | 1 | 2 | 0 | `D` / `F` | High-speed cyclone lifting enemies into the air |
-| **Alacrity** | `W W E` | 0 | 2 | 1 | `D` / `F` | Massive attack speed and bonus attack damage |
-| **Sun Strike** | `E E E` | 0 | 0 | 3 | `D` / `F` | Delayed global beam of pure solar devastation |
-| **Forge Spirit** | `E E Q` | 1 | 0 | 2 | `D` / `F` | Summons elemental spirits with armor melting attacks |
-| **Chaos Meteor** | `E E W` | 0 | 1 | 2 | `D` / `F` | Flaming meteor rolling forward leaving molten trail |
-| **Deafening Blast** | `Q W E` | 1 | 1 | 1 | `D` / `F` | Sonic wave knocking back, damaging, and disarming |
 
 ---
 
-## Game Modes & Features
+## Gameplay Features
 
-* **Endless Survival (Sudden Death)**: High-stakes survival starting with a 15-second clock. Each correct spell awards **+2.5s**, while **any missed invoke triggers instant defeat**!
-* **Speed Trainer / Time Attack**: The classic 60-second speed test to push invocation APM and combo streak multipliers.
-* **Practice / Sandbox**: Freeform untimed invocation and casting sandbox with on-screen visual feedback and action logging.
+* **Strict Endless Survival**: Instant arcade boot directly into the arena in a Ready state. Press `[SPACE]` or `[ENTER]` to trigger a 3-2-1-GO countdown! Starts with a 15-second clock. Each correct spell awards **+2.5s** (up to 25s), while **any missed invoke triggers instant Sudden Death defeat**!
 * **Dota 2 Rank System**: Official 8-tier ranking from **Herald** to **Immortal** based on invocation performance and score.
-* **Interactive Spell Book**: Catalog of all 10 spells with animated recipe badges and click-to-audition Dota 2 spell audio cues.
-* **Hall of Invocation (High Scores)**: Tracks personal records, highest strikes/streaks, and rank medals saved to `scores.dat`.
-* **Settings & Audio Controls**: In-game configuration screen with sliders and toggles for Master/SFX/Voice/Music volumes and preferences saved to `settings.dat`.
+* **In-Game Pause & Options Modal**: Press `[ESC]` anytime to open the modal dashboard:
+  * **Hall of Invocation (High Scores)**: Tracks personal best score, longest streak, spells invoked, and survival time alongside the Dota 2 rank medal ladder.
+  * **Settings & Audio**: Adjust Master, SFX, and Music volume sliders, and toggle Action Feed and Screen Shake.
+  * **Interactive Spellbook**: Catalog of all 10 spells with animated recipe badges and click-to-audition spell sound cues.
+  * **Controls & Rules Guide**: Quick reference for keys and survival mechanics.
 * **Elemental Particle Effects & Screen Shake**: Zero-allocation fixed particle pool for Quas ice crystals, Wex storm sparks, Exort fire embers, 360° invoke shockwaves, and dynamic camera shake.
 
 ---
@@ -67,7 +53,8 @@ The Invoker Game challenges players to rapidly manipulate three elemental reagen
 | Invoke Spell | `R` |
 | Cast Primary Spell (Slot 1) | `D` |
 | Cast Secondary Spell (Slot 2) | `F` |
-| Back to Menu / Pause | `Escape` |
+| Start Run (from Ready state) | `Space` / `Enter` |
+| Pause / Options Menu | `Escape` |
 
 ---
 

@@ -27,8 +27,6 @@ void InitAudioManager(AudioManager *audio) {
 
     audio->ready = false;
     audio->sfxVolume = 0.85f;
-    audio->voiceVolume = 0.95f;
-    audio->currentVoice = NULL;
 
     InitAudioDevice();
     if (!IsAudioDeviceReady()) {
@@ -61,16 +59,6 @@ void InitAudioManager(AudioManager *audio) {
     audio->spellSounds[SPELL_FORGE_SPIRIT]    = LoadSound("assets/sounds/spell_forgespirit.mp3");
     audio->spellSounds[SPELL_CHAOS_METEOR]    = LoadSound("assets/sounds/spell_chaosmeteor.mp3");
     audio->spellSounds[SPELL_DEAFENING_BLAST] = LoadSound("assets/sounds/spell_deafeningblast.mp3");
-
-    // Iconic Dota 2 Invoker voice lines
-    audio->voBegin     = LoadSound("assets/sounds/vo_begin.mp3");
-    audio->voCarl      = LoadSound("assets/sounds/vo_carl.mp3");
-    audio->voRemember  = LoadSound("assets/sounds/vo_remember.mp3");
-    audio->voGlorious  = LoadSound("assets/sounds/vo_glorious.mp3");
-    audio->voEnlighten = LoadSound("assets/sounds/vo_enlighten.mp3");
-    audio->voVictory   = LoadSound("assets/sounds/vo_victory.mp3");
-    audio->voUnravel   = LoadSound("assets/sounds/vo_unravel.mp3");
-    audio->voLaugh     = LoadSound("assets/sounds/vo_laugh.mp3");
 }
 
 void UnloadAudioManager(AudioManager *audio) {
@@ -86,15 +74,6 @@ void UnloadAudioManager(AudioManager *audio) {
     for (int i = 0; i < SPELL_COUNT; i++) {
         UnloadSoundSafe(&audio->spellSounds[i]);
     }
-
-    UnloadSoundSafe(&audio->voBegin);
-    UnloadSoundSafe(&audio->voCarl);
-    UnloadSoundSafe(&audio->voRemember);
-    UnloadSoundSafe(&audio->voGlorious);
-    UnloadSoundSafe(&audio->voEnlighten);
-    UnloadSoundSafe(&audio->voVictory);
-    UnloadSoundSafe(&audio->voUnravel);
-    UnloadSoundSafe(&audio->voLaugh);
 
     CloseAudioDevice();
     audio->ready = false;
@@ -136,51 +115,5 @@ void PlayQuizFeedbackSound(AudioManager *audio, bool correct) {
         PlaySoundSafe(audio->sndCorrect, audio->sfxVolume * 0.9f);
     } else {
         PlaySoundSafe(audio->sndMiss, audio->sfxVolume * 0.8f);
-    }
-}
-
-void PlayVoiceEvent(AudioManager *audio, VoiceEvent event) {
-    if (!audio || !audio->ready) return;
-
-    // Stop current voice line if still playing to prevent overlapping speech
-    if (audio->currentVoice && audio->currentVoice->stream.buffer != NULL && IsSoundPlaying(*audio->currentVoice)) {
-        StopSound(*audio->currentVoice);
-    }
-
-    Sound *target = NULL;
-
-    switch (event) {
-        case VOICE_START:
-            target = (GetRandomValue(0, 1) == 0) ? &audio->voBegin : &audio->voCarl;
-            break;
-        case VOICE_STREAK_5:
-            target = &audio->voRemember;
-            break;
-        case VOICE_STREAK_10:
-            target = &audio->voGlorious;
-            break;
-        case VOICE_STREAK_15:
-            target = &audio->voLaugh;
-            break;
-        case VOICE_STREAK_20:
-            target = &audio->voEnlighten;
-            break;
-        case VOICE_MISS:
-            target = &audio->voUnravel;
-            break;
-        case VOICE_VICTORY:
-            target = &audio->voVictory;
-            break;
-        case VOICE_DEFEAT:
-            target = &audio->voUnravel;
-            break;
-        default:
-            break;
-    }
-
-    if (target && target->stream.buffer != NULL) {
-        audio->currentVoice = target;
-        SetSoundVolume(*target, audio->voiceVolume);
-        PlaySound(*target);
     }
 }

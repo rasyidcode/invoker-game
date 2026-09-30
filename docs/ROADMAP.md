@@ -79,60 +79,44 @@ flowchart TD
   - On streak loss / miss ("My mind... unravels!").
 - [x] Implement pitch variation / randomization on orb clicks for natural audio feel.
 
-### Phase 6: Screen Management, Splash Screen, Menu & Settings
+### Phase 6: Screen Management, Splash Screen & In-Game Pause Modal
 - [x] Implement procedural animated "Powered by Raylib" Splash Screen (`SCREEN_LOGO`) following [`.agents/skills/raylib-splash-screen/SKILL.md`](./.agents/skills/raylib-splash-screen/SKILL.md):
   - 4-state procedural animation: blinking cursor $\rightarrow$ expanding border bars $\rightarrow$ typewriter `"raylib"` text $\rightarrow$ alpha fade-out.
   - Immediate skip functionality on `KEY_SPACE`, `KEY_ENTER`, `KEY_ESCAPE`, or mouse click.
-  - Seamless auto-transition from `SCREEN_LOGO` to `SCREEN_MENU`.
-- [x] Implement enum-driven screen state machine following [`.agents/skills/raylib-screen-management/SKILL.md`](./.agents/skills/raylib-screen-management/SKILL.md):
-  - Screen enum: `SCREEN_LOGO`, `SCREEN_MENU`, `SCREEN_PRACTICE`, `SCREEN_TIME_ATTACK`, `SCREEN_ENDLESS`, `SCREEN_SPELLBOOK`, `SCREEN_GAME_OVER`.
-  - Dual-switch update (`Update...Screen()`) and draw (`Draw...Screen()`) loop architecture.
-- [x] Design Dota 2 inspired Title / Main Menu Screen:
-  - Invoker hero portrait frame, title banner, and elemental badge styling.
-  - Interactive menu buttons: `PLAY`, `HIGH SCORE`, `SETTINGS`, `HELP`, `QUIT GAME`.
-  - Nested submenus:
-    - **PLAY**: `ENDLESS`, `TIME ATTACK`, `PRACTICE MODE`, `< BACK`.
-    - **HELP**: `SPELL BOOK`, `CONTROLS & BASICS`, `< BACK`.
-  - Full keyboard navigation (`KEY_UP`, `KEY_DOWN`, `KEY_ENTER`, number hotkeys 1-5) and mouse hover/click interaction.
-- [x] Screen transitions and state initialization:
-  - Smooth fade-in and fade-out alpha transitions (`ScreenTransition`).
-  - State reset helper `ResetGameplaySession(&ctx, mode)` on mode launch.
-  - Quick return to menu on `KEY_ESCAPE`.
-- [x] Interactive Spell Book screen (`SCREEN_SPELLBOOK`):
-  - Catalog of all 10 spells with icons, elemental recipe badges, and click-to-audition audio playback.
-- [x] Settings & Audio Configuration view:
-  - Interactive audio controls with volume sliders and mute toggles:
-    - Master Volume (`0.0f` to `1.0f`)
-    - SFX Volume (`0.0f` to `1.0f`) & Mute Toggle (orb clicks, invoke sound)
-    - Hero Voice Volume (`0.0f` to `1.0f`) & Mute Toggle (Invoker voice lines)
-    - Music Volume (`0.0f` to `1.0f`) & Mute Toggle
-  - Gameplay preference toggles:
-    - Recipe Helper toggle (on-screen 10-spell cheat sheet)
-    - Action Feed toggle (on-screen event log)
-    - Screen Shake toggle (heavy spell cast feedback)
-  - Zero-allocation binary file persistence:
-    - `SaveSettings(&ctx->settings)` and `LoadSettings(&ctx->settings)` to `settings.dat`.
+  - Direct arcade boot: auto-transition straight into `SCREEN_GAMEPLAY` in Ready state.
+- [x] Implement streamlined screen and state machine:
+  - Screen enum: `SCREEN_LOGO`, `SCREEN_GAMEPLAY`.
+  - Gameplay states: `GAME_STATE_READY`, `GAME_STATE_COUNTDOWN`, `GAME_STATE_PLAYING`.
+- [x] In-Game Pause & Options Modal System (`PauseModal`):
+  - Openable via `KEY_ESCAPE` during ready state or active gameplay.
+  - Sub-pages:
+    - **Main Pause Menu**: `RESUME`, `HALL OF INVOCATION`, `SETTINGS & AUDIO`, `SPELLBOOK`, `CONTROLS & RULES`, `RESTART RUN`, `QUIT GAME`.
+    - **Hall of Invocation**: Dedicated Endless Survival records, streak, time survived, and Dota 2 rank medal showcase.
+    - **Settings & Audio**: Master, SFX, and Music volume sliders + Action Feed and Screen Shake toggles.
+    - **Interactive Spellbook**: Complete 10-spell catalog with recipe badges and click-to-audition sound cues.
+    - **Controls & Rules Guide**: Complete keyboard mapping and Sudden Death rules breakdown.
+    - **Quit Confirmation**: Safe `[Y / N]` desktop exit prompt.
+- [x] Streamline audio pipeline:
+  - Removed distracting voice lines for hyper-focused arcade gameplay.
+  - Audio pipeline focuses on crisp elemental orb clicks, ability invoke sound, spell casting cues, and feedback chimes.
 
-### Phase 7: Endless Survival & Speed Trainer (Time Attack)
-- [x] Implement random target spell selection.
-- [x] Display target spell banner with icon and name prominently.
-- [x] Implement Endless Survival Mode:
+### Phase 7: Pure Endless Survival & Sudden Death Mastery
+- [x] Instant arcade boot into arena in Ready state:
+  - Full gameplay HUD displayed underneath.
+  - Pulsing center overlay: `PRESS [SPACE] OR [ENTER] TO BEGIN`.
+  - Animated `3... 2... 1... GO!` countdown sequence (~1.5s) with punchy SFX ticks before timer starts.
+- [x] Flagship Endless Survival Mechanics:
   - 15.0-second starting timer with real-time countdown.
   - +2.5s time bonus per correct spell invocation (capped at 25s max bank).
   - Immediate Sudden Death elimination on any miss or incomplete orb buffer.
-- [x] Implement Time Attack round timer (60s countdown).
-- [x] Evaluate invoke accuracy:
-  - [x] Correct spell $\rightarrow$ add score, increase combo streak, pick next target.
-  - [x] Incorrect spell $\rightarrow$ reset streak (Time Attack/Practice) or Sudden Death (Endless).
-- [x] Create Game Over popup modal with official Dota 2 rank badge:
+- [x] Game Over popup modal with official Dota 2 rank badge:
   - Official Dota 2 Rank evaluation from **Herald** to **Immortal** based on spells invoked.
   - Summary metrics: Final Score, Total Spells Invoked, Max Strike/Streak, Accuracy %, and Time Survived.
-  - Interactive "TRY AGAIN" and "MAIN MENU" action buttons with keyboard hotkeys.
+  - Action buttons: "TRY AGAIN [ENTER / SPACE]" (resets back to Ready state) and "OPTIONS / MENU [ESCAPE]" (opens Pause modal).
 
 ### Phase 8: High Scores, Visual Effects & v1.0 Polish
 - [x] Save best scores and personal records to a local file (`scores.dat`):
-  - Hall of Invocation view displaying personal records for Endless and Time Attack.
-  - Dota 2 Rank tier progression ladder overview.
+  - Hall of Invocation view displaying Endless personal bests and Dota 2 Rank tier progression ladder overview.
 - [x] Implement zero-allocation elemental particle system and dynamic screen shake:
   - Fixed-pool particle system (`ParticleSystem`, 256 particles) with zero heap allocation in game loop.
   - Quas ice crystals (cyan drifting flakes with gravity).

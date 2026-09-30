@@ -2,12 +2,14 @@
 #include <math.h>
 #include <stdio.h>
 
-#define MAIN_ITEM_COUNT 5
-#define PLAY_ITEM_COUNT 4
-#define HELP_ITEM_COUNT 3
+#if defined(PLATFORM_WEB)
+#define PAUSE_ITEM_COUNT 6
+#else
+#define PAUSE_ITEM_COUNT 7
+#endif
 
 #define MENU_BTN_WIDTH 540
-#define MENU_BTN_START_Y 550
+#define MENU_BTN_START_Y 540
 
 typedef struct {
     const char *title;
@@ -15,26 +17,32 @@ typedef struct {
     const char *hotkey;
 } MenuItem;
 
-static const MenuItem mainMenuItems[MAIN_ITEM_COUNT] = {
-    {"PLAY", "Endless Survival, Time Attack, Practice", "1"},
-    {"HIGH SCORE", "Personal records, best streaks & rank badges", "2"},
-    {"SETTINGS", "Audio volume sliders, SFX, voice & options", "3"},
-    {"HELP", "Spell Book, recipes & controls guide", "4"},
-    {"QUIT GAME", "Exit to desktop", "5"}
+static const MenuItem pauseMenuItems[PAUSE_ITEM_COUNT] = {
+    {"RESUME", "Return to active game session", "1"},
+    {"HALL OF INVOCATION", "Personal records, streak & Dota 2 rank medal", "2"},
+    {"SETTINGS & AUDIO", "Volume sliders, sound cues & preferences", "3"},
+    {"SPELLBOOK", "Catalog of all 10 spells, formulas & sound cues", "4"},
+    {"CONTROLS & RULES", "Keybindings & Endless survival mechanics", "5"},
+    {"RESTART RUN", "Reset session to ready state", "6"}
+#if !defined(PLATFORM_WEB)
+    ,{"QUIT GAME", "Exit to desktop", "7"}
+#endif
 };
 
-static const MenuItem playMenuItems[PLAY_ITEM_COUNT] = {
-    {"ENDLESS", "15s Sudden Death: Miss = Defeat, Correct = +2.5s", "1"},
-    {"TIME ATTACK", "60-second speed test: APM & combo accuracy", "2"},
-    {"PRACTICE MODE", "Untimed sandbox & spell reaction training", "3"},
-    {"< BACK TO MAIN MENU", "Return to main menu", "4"}
-};
+void OpenPauseModal(GameContext *ctx, PausePage page) {
+    if (!ctx) return;
+    ctx->pause.active = true;
+    ctx->pause.page = page;
+    ctx->pause.selectedButton = 0;
+    PlayOrbSound(ctx->audio, ORB_QUAS);
+}
 
-static const MenuItem helpMenuItems[HELP_ITEM_COUNT] = {
-    {"SPELL BOOK", "Catalog of all 10 spells, recipes & cues", "1"},
-    {"CONTROLS & BASICS", "Elemental reagents & invocation guide", "2"},
-    {"< BACK TO MAIN MENU", "Return to main menu", "3"}
-};
+void ClosePauseModal(GameContext *ctx) {
+    if (!ctx) return;
+    ctx->pause.active = false;
+    ctx->pause.page = PAUSE_PAGE_MAIN;
+    PlayOrbSound(ctx->audio, ORB_WEX);
+}
 
 static void DrawMenuButtons(int itemCount, const MenuItem *items, int selectedIndex, int startY, int btnHeight, int btnGap) {
     int centerX = VIRTUAL_WIDTH / 2;
@@ -72,14 +80,14 @@ static void DrawMenuButtons(int itemCount, const MenuItem *items, int selectedIn
                  hkFs, isSelected ? GOLD : LIGHTGRAY);
 
         // Title
-        int tFs = 21;
+        int tFs = 20;
         Color tColor = isSelected ? (Color){255, 245, 220, 255} : (Color){215, 220, 235, 255};
-        DrawText(items[i].title, buttonX + 62, btnY + 14, tFs, tColor);
+        DrawText(items[i].title, buttonX + 62, btnY + 12, tFs, tColor);
 
         // Subtitle
         int sFs = 13;
         Color sColor = isSelected ? (Color){190, 195, 210, 255} : (Color){115, 120, 135, 255};
-        DrawText(items[i].subtitle, buttonX + 62, btnY + 42, sFs, sColor);
+        DrawText(items[i].subtitle, buttonX + 62, btnY + 38, sFs, sColor);
 
         if (isSelected) {
             DrawText(">", buttonX + MENU_BTN_WIDTH - 30, btnY + (btnHeight - 20) / 2, 22, GOLD);
@@ -90,7 +98,7 @@ static void DrawMenuButtons(int itemCount, const MenuItem *items, int selectedIn
 static void DrawHeader(const GameContext *ctx) {
     int centerX = VIRTUAL_WIDTH / 2;
 
-    int portraitSize = 170;
+    int portraitSize = 160;
     int portraitRadius = portraitSize / 2;
     int portraitY = 110;
     int portraitCenterY = portraitY + portraitRadius;
@@ -117,20 +125,20 @@ static void DrawHeader(const GameContext *ctx) {
     // Titles
     const char *sub1 = "DOTA 2";
     int sub1W = MeasureText(sub1, 20);
-    DrawText(sub1, centerX - sub1W / 2, 300, 20, (Color){240, 190, 60, 255});
+    DrawText(sub1, centerX - sub1W / 2, 290, 20, (Color){240, 190, 60, 255});
 
     const char *title = "INVOKER'S ARSENAL";
-    int titleW = MeasureText(title, 38);
-    DrawText(title, centerX - titleW / 2, 328, 38, RAYWHITE);
+    int titleW = MeasureText(title, 36);
+    DrawText(title, centerX - titleW / 2, 316, 36, RAYWHITE);
 
-    const char *sub2 = "Reaction Training & Spell Quiz Engine";
+    const char *sub2 = "ENDLESS SURVIVAL - OPTIONS & PAUSE";
     int sub2W = MeasureText(sub2, 15);
-    DrawText(sub2, centerX - sub2W / 2, 376, 15, (Color){140, 145, 160, 255});
+    DrawText(sub2, centerX - sub2W / 2, 362, 15, (Color){255, 100, 100, 255});
 
     // 3 Elemental Orbs
     int orbSpacing = 68;
-    int orbY = 428;
-    float orbR = 23.0f;
+    int orbY = 415;
+    float orbR = 22.0f;
 
     struct {
         OrbType type;
@@ -168,127 +176,115 @@ static void DrawHeader(const GameContext *ctx) {
         DrawText(orbBadges[i].key, (int)posX - kW / 2, (int)badgeY - 6, 12, GOLD);
     }
 
-    DrawLine(centerX - 220, 475, centerX + 220, 475, (Color){50, 55, 70, 255});
+    DrawLine(centerX - 220, 465, centerX + 220, 465, (Color){50, 55, 70, 255});
 }
 
 static void DrawHighScoresView(const GameContext *ctx) {
     int centerX = VIRTUAL_WIDTH / 2;
-    int cardW = 540;
+    int cardW = 560;
     int cardX = centerX - cardW / 2;
 
     // Subheader
-    DrawText("HALL OF INVOCATION", centerX - MeasureText("HALL OF INVOCATION", 26) / 2, 495, 26, GOLD);
-    DrawText("Personal Best Records & Dota 2 Rank Medals", centerX - MeasureText("Personal Best Records & Dota 2 Rank Medals", 14) / 2, 530, 14, (Color){150, 155, 170, 255});
+    DrawText("HALL OF INVOCATION", centerX - MeasureText("HALL OF INVOCATION", 28) / 2, 280, 28, GOLD);
+    DrawText("Endless Survival Records & Dota 2 Rank Medals", centerX - MeasureText("Endless Survival Records & Dota 2 Rank Medals", 14) / 2, 318, 14, (Color){150, 155, 170, 255});
 
-    // Endless Mode Card
-    int y1 = 560;
-    int h1 = 145;
+    // Endless Mode Card - Large Showcase
+    int y1 = 350;
+    int h1 = 280;
     DrawRectangle(cardX, y1, cardW, h1, (Color){22, 26, 36, 255});
-    RankInfo endRank = GetDotaRankInfo(ctx->highScores.endlessBestRank);
-    DrawRectangleLinesEx((Rectangle){(float)cardX, (float)y1, (float)cardW, (float)h1}, 1.5f, endRank.color);
+    RankInfo endRank = GetDotaRankInfo(ctx->highScores.bestRank);
+    DrawRectangleLinesEx((Rectangle){(float)cardX, (float)y1, (float)cardW, (float)h1}, 2.0f, endRank.color);
 
-    DrawText("ENDLESS SURVIVAL", cardX + 20, y1 + 16, 18, (Color){255, 100, 100, 255});
-    DrawText(TextFormat("RANK: %s (%s)", endRank.name, endRank.title), cardX + 20, y1 + 42, 17, endRank.color);
-    DrawText(TextFormat("High Score: %d", ctx->highScores.endlessBestScore), cardX + 20, y1 + 72, 16, GOLD);
-    DrawText(TextFormat("Max Strike / Streak: %d", ctx->highScores.endlessBestStreak), cardX + 20, y1 + 95, 15, (Color){100, 240, 140, 255});
-    DrawText(TextFormat("Spells Invoked: %d", ctx->highScores.endlessBestSpells), cardX + 20, y1 + 117, 15, RAYWHITE);
+    DrawText("ENDLESS SURVIVAL PERSONAL BEST", cardX + 24, y1 + 20, 20, (Color){255, 100, 100, 255});
+    DrawText(TextFormat("CURRENT RANK: %s - %s", endRank.name, endRank.title), cardX + 24, y1 + 52, 18, endRank.color);
 
-    // Rank Badge Icon on the right
-    Texture2D endTex = GetRankTexture(ctx->assets, ctx->highScores.endlessBestRank);
+    DrawLine(cardX + 20, y1 + 84, cardX + cardW - 20, y1 + 84, (Color){45, 50, 65, 255});
+
+    DrawText("Highest Score:", cardX + 24, y1 + 104, 17, (Color){180, 185, 200, 255});
+    DrawText(TextFormat("%d", ctx->highScores.bestScore), cardX + 220, y1 + 104, 18, GOLD);
+
+    DrawText("Longest Streak:", cardX + 24, y1 + 138, 17, (Color){180, 185, 200, 255});
+    DrawText(TextFormat("%d", ctx->highScores.bestStreak), cardX + 220, y1 + 138, 18, (Color){255, 190, 60, 255});
+
+    DrawText("Spells Invoked:", cardX + 24, y1 + 172, 17, (Color){180, 185, 200, 255});
+    DrawText(TextFormat("%d", ctx->highScores.bestSpells), cardX + 220, y1 + 172, 18, (Color){100, 240, 140, 255});
+
+    DrawText("Time Survived:", cardX + 24, y1 + 206, 17, (Color){180, 185, 200, 255});
+    DrawText(TextFormat("%.1fs", ctx->highScores.bestTime), cardX + 220, y1 + 206, 18, RAYWHITE);
+
+    // Large Rank Badge Icon on the right
+    Texture2D endTex = GetRankTexture(ctx->assets, ctx->highScores.bestRank);
     if (endTex.id > 0) {
         Rectangle src = {0.0f, 0.0f, (float)endTex.width, (float)endTex.height};
-        Rectangle dst = {(float)(cardX + cardW - 128), (float)(y1 + 16), 112.0f, 112.0f};
+        Rectangle dst = {(float)(cardX + cardW - 170), (float)(y1 + 95), 140.0f, 140.0f};
         DrawTexturePro(endTex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
     }
 
-    // Time Attack Card
-    int y2 = 720;
-    int h2 = 145;
-    DrawRectangle(cardX, y2, cardW, h2, (Color){22, 26, 36, 255});
-    RankInfo taRank = GetDotaRankInfo(ctx->highScores.timeAttackBestRank);
-    DrawRectangleLinesEx((Rectangle){(float)cardX, (float)y2, (float)cardW, (float)h2}, 1.5f, taRank.color);
-
-    DrawText("TIME ATTACK (60s)", cardX + 20, y2 + 16, 18, (Color){255, 200, 80, 255});
-    DrawText(TextFormat("RANK: %s (%s)", taRank.name, taRank.title), cardX + 20, y2 + 42, 17, taRank.color);
-    DrawText(TextFormat("High Score: %d", ctx->highScores.timeAttackBestScore), cardX + 20, y2 + 72, 16, GOLD);
-    DrawText(TextFormat("Max Strike / Streak: %d", ctx->highScores.timeAttackBestStreak), cardX + 20, y2 + 95, 15, (Color){100, 240, 140, 255});
-    DrawText(TextFormat("Spells Invoked: %d", ctx->highScores.timeAttackBestSpells), cardX + 20, y2 + 117, 15, RAYWHITE);
-
-    // Rank Badge Icon on the right
-    Texture2D taTex = GetRankTexture(ctx->assets, ctx->highScores.timeAttackBestRank);
-    if (taTex.id > 0) {
-        Rectangle src = {0.0f, 0.0f, (float)taTex.width, (float)taTex.height};
-        Rectangle dst = {(float)(cardX + cardW - 128), (float)(y2 + 16), 112.0f, 112.0f};
-        DrawTexturePro(taTex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
-    }
-
     // Rank Ladder Guide
-    int y3 = 880;
+    int y3 = 655;
     DrawText("DOTA 2 RANK TIERS (ENDLESS SPELL THRESHOLDS):", cardX, y3, 14, (Color){180, 185, 200, 255});
-    int gridY = y3 + 22;
+    int gridY = y3 + 24;
     for (int r = 0; r < DOTA_RANK_COUNT; r++) {
         RankInfo rInfo = GetDotaRankInfo((DotaRank)r);
-        int colIdx = r % 4;
-        int rowIdx = r / 4;
-        int bx = cardX + colIdx * 135;
-        int by = gridY + rowIdx * 42;
+        int colIdx = r % 2;
+        int rowIdx = r / 2;
+        int bw = 272;
+        int bh = 46;
+        int bx = cardX + colIdx * (bw + 16);
+        int by = gridY + rowIdx * (bh + 8);
 
-        DrawRectangle(bx, by, 128, 36, (Color){16, 18, 24, 255});
-        DrawRectangleLines(bx, by, 128, 36, rInfo.color);
+        DrawRectangle(bx, by, bw, bh, (Color){16, 18, 24, 255});
+        DrawRectangleLines(bx, by, bw, bh, rInfo.color);
 
         Texture2D ladderTex = GetRankTexture(ctx->assets, (DotaRank)r);
         if (ladderTex.id > 0) {
             Rectangle src = {0.0f, 0.0f, (float)ladderTex.width, (float)ladderTex.height};
-            Rectangle dst = {(float)(bx + 4), (float)(by + 3), 30.0f, 30.0f};
+            Rectangle dst = {(float)(bx + 8), (float)(by + 5), 36.0f, 36.0f};
             DrawTexturePro(ladderTex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
-            DrawText(rInfo.name, bx + 38, by + 5, 12, rInfo.color);
-            DrawText(TextFormat("%d+ Spells", rInfo.minSpells), bx + 38, by + 20, 11, (Color){130, 135, 150, 255});
-        } else {
-            DrawText(rInfo.name, bx + 6, by + 5, 12, rInfo.color);
-            DrawText(TextFormat("%d+ Spells", rInfo.minSpells), bx + 6, by + 20, 11, (Color){130, 135, 150, 255});
         }
+        DrawText(rInfo.name, bx + 52, by + 8, 14, rInfo.color);
+        DrawText(TextFormat("%d+ Correct Spells (%s)", rInfo.minSpells, rInfo.title), bx + 52, by + 26, 11, (Color){140, 145, 160, 255});
     }
 
     // Back button
-    int btnY = 1000;
-    Rectangle backRec = {(float)cardX, (float)btnY, (float)cardW, 56};
+    int btnY = 930;
+    Rectangle backRec = {(float)cardX, (float)btnY, (float)cardW, 58};
     DrawRectangleRec(backRec, (Color){30, 35, 48, 255});
     DrawRectangleLinesEx(backRec, 1.5f, GOLD);
-    const char *backTxt = "< BACK TO MAIN MENU (ESC)";
+    const char *backTxt = "< BACK TO PAUSE MENU (ESC)";
     int backW = MeasureText(backTxt, 18);
-    DrawText(backTxt, centerX - backW / 2, btnY + 18, 18, GOLD);
+    DrawText(backTxt, centerX - backW / 2, btnY + 19, 18, GOLD);
 }
 
 static void DrawSettingsView(GameContext *ctx, Vector2 mouse) {
     (void)mouse;
     int centerX = VIRTUAL_WIDTH / 2;
-    int cardW = 540;
+    int cardW = 560;
     int cardX = centerX - cardW / 2;
 
-    DrawText("SETTINGS & AUDIO", centerX - MeasureText("SETTINGS & AUDIO", 26) / 2, 495, 26, GOLD);
-    DrawText("Adjust audio volumes and gameplay preferences", centerX - MeasureText("Adjust audio volumes and gameplay preferences", 14) / 2, 530, 14, (Color){150, 155, 170, 255});
+    DrawText("SETTINGS & AUDIO", centerX - MeasureText("SETTINGS & AUDIO", 28) / 2, 380, 28, GOLD);
+    DrawText("Adjust audio volumes and visual preferences", centerX - MeasureText("Adjust audio volumes and visual preferences", 14) / 2, 418, 14, (Color){150, 155, 170, 255});
 
     struct {
         const char *label;
         float value;
         bool isMuted;
-    } sliders[4] = {
+    } sliders[3] = {
         {"Master Volume", ctx->settings.masterVolume, false},
         {"SFX Volume", ctx->settings.sfxVolume, ctx->settings.sfxMuted},
-        {"Hero Voice Volume", ctx->settings.voiceVolume, ctx->settings.voiceMuted},
         {"Music Volume", ctx->settings.musicVolume, ctx->settings.musicMuted}
     };
 
-    int startY = 570;
-    for (int i = 0; i < 4; i++) {
-        int y = startY + i * 75;
-        DrawText(sliders[i].label, cardX, y, 16, RAYWHITE);
+    int startY = 470;
+    for (int i = 0; i < 3; i++) {
+        int y = startY + i * 85;
+        DrawText(sliders[i].label, cardX, y, 17, RAYWHITE);
 
         // Slider track
         int trackX = cardX;
-        int trackY = y + 26;
-        int trackW = 420;
-        int trackH = 10;
+        int trackY = y + 30;
+        int trackW = 440;
+        int trackH = 12;
         DrawRectangle(trackX, trackY, trackW, trackH, (Color){35, 40, 52, 255});
 
         float fillRatio = sliders[i].value;
@@ -300,238 +296,284 @@ static void DrawSettingsView(GameContext *ctx, Vector2 mouse) {
 
         // Thumb
         int thumbX = trackX + (int)((float)trackW * fillRatio);
-        DrawCircle(thumbX, trackY + trackH / 2, 9, RAYWHITE);
-        DrawCircleLines(thumbX, trackY + trackH / 2, 9, GOLD);
+        DrawCircle(thumbX, trackY + trackH / 2, 10, RAYWHITE);
+        DrawCircleLines(thumbX, trackY + trackH / 2, 10, GOLD);
 
         // Percentage
         const char *pct = TextFormat("%d%%", (int)(fillRatio * 100.0f));
-        DrawText(pct, cardX + trackW + 20, y + 22, 16, sliders[i].isMuted ? RED : GOLD);
+        DrawText(pct, cardX + trackW + 20, y + 26, 17, sliders[i].isMuted ? RED : GOLD);
     }
 
     // Gameplay Toggles Card
-    int togY = 880;
-    DrawText("GAMEPLAY PREFERENCES", cardX, togY, 16, GOLD);
+    int togY = 750;
+    DrawText("GAMEPLAY PREFERENCES", cardX, togY, 18, GOLD);
 
-    DrawText("Recipe Helper:", cardX, togY + 30, 15, RAYWHITE);
-    DrawText(ctx->settings.showRecipeHelper ? "[ ON ]" : "[ OFF ]", cardX + 180, togY + 30, 15,
-             ctx->settings.showRecipeHelper ? GREEN : (Color){150, 150, 150, 255});
-
-    DrawText("Action Feed Log:", cardX, togY + 58, 15, RAYWHITE);
-    DrawText(ctx->settings.showActionFeed ? "[ ON ]" : "[ OFF ]", cardX + 180, togY + 58, 15,
+    DrawText("Action Feed Log:", cardX, togY + 38, 16, RAYWHITE);
+    DrawText(ctx->settings.showActionFeed ? "[ ON ]" : "[ OFF ]", cardX + 220, togY + 38, 16,
              ctx->settings.showActionFeed ? GREEN : (Color){150, 150, 150, 255});
 
-    DrawText("Screen Shake:", cardX, togY + 86, 15, RAYWHITE);
-    DrawText(ctx->settings.screenShake ? "[ ON ]" : "[ OFF ]", cardX + 180, togY + 86, 15,
+    DrawText("Screen Shake:", cardX, togY + 76, 16, RAYWHITE);
+    DrawText(ctx->settings.screenShake ? "[ ON ]" : "[ OFF ]", cardX + 220, togY + 76, 16,
              ctx->settings.screenShake ? GREEN : (Color){150, 150, 150, 255});
 
     // Back button
-    int btnY = 1000;
-    Rectangle backRec = {(float)cardX, (float)btnY, (float)cardW, 56};
+    int btnY = 940;
+    Rectangle backRec = {(float)cardX, (float)btnY, (float)cardW, 58};
     DrawRectangleRec(backRec, (Color){30, 35, 48, 255});
     DrawRectangleLinesEx(backRec, 1.5f, GOLD);
-    const char *backTxt = "< BACK TO MAIN MENU (ESC)";
+    const char *backTxt = "< BACK TO PAUSE MENU (ESC)";
     int backW = MeasureText(backTxt, 18);
-    DrawText(backTxt, centerX - backW / 2, btnY + 18, 18, GOLD);
+    DrawText(backTxt, centerX - backW / 2, btnY + 19, 18, GOLD);
+}
+
+static void DrawRecipeOrb(const GameAssets *assets, OrbType orb, int bx, int by, float radius) {
+    Color baseColor = GetOrbColor(orb);
+    Texture2D tex = GetCircularOrbTexture(assets, orb);
+
+    if (tex.id > 0) {
+        DrawCircle(bx, by, radius, (Color){15, 18, 24, 255});
+        Rectangle src = {0.0f, 0.0f, (float)tex.width, (float)tex.height};
+        Rectangle dest = {(float)bx - radius, (float)by - radius, radius * 2.0f, radius * 2.0f};
+        DrawTexturePro(tex, src, dest, (Vector2){0, 0}, 0.0f, WHITE);
+        DrawCircleLines(bx, by, radius, baseColor);
+        DrawCircleLines(bx, by, radius + 1.0f, ColorAlpha(baseColor, 0.55f));
+    } else {
+        DrawCircle(bx, by, radius, baseColor);
+        DrawCircleLines(bx, by, radius + 1.0f, WHITE);
+        const char *letter = (orb == ORB_QUAS) ? "Q" : (orb == ORB_WEX) ? "W" : "E";
+        DrawText(letter, bx - 5, by - 6, 13, BLACK);
+    }
+}
+
+static void DrawSpellbookView(const GameContext *ctx, Vector2 mouse) {
+    int centerX = VIRTUAL_WIDTH / 2;
+
+    const char *title = "THE INVOKER'S SPELLBOOK";
+    int titleFs = 28;
+    DrawText(title, centerX - MeasureText(title, titleFs) / 2, 70, titleFs, (Color){240, 200, 80, 255});
+
+    const char *sub = "All 10 Arcane Formulas - Click any spell to audition its sound cue";
+    int subFs = 14;
+    DrawText(sub, centerX - MeasureText(sub, subFs) / 2, 108, subFs, (Color){150, 155, 170, 255});
+
+    DrawLine(centerX - 240, 132, centerX + 240, 132, (Color){45, 50, 65, 255});
+
+    int rowW = 650;
+    int rowH = 76;
+    int startY = 150;
+    int gap = 10;
+    int rowX = centerX - rowW / 2;
+
+    for (int i = 0; i < SPELL_COUNT; i++) {
+        SpellId id = (SpellId)i;
+        const SpellInfo *info = GetSpellInfo(id);
+        if (!info) continue;
+
+        int y = startY + i * (rowH + gap);
+        Rectangle r = {(float)rowX, (float)y, (float)rowW, (float)rowH};
+        bool hovered = CheckCollisionPointRec(mouse, r);
+
+        Color bg = hovered ? (Color){30, 34, 46, 255} : (Color){22, 25, 33, 230};
+        DrawRectangle(rowX, y, rowW, rowH, bg);
+
+        Color borderCol = hovered ? (Color){240, 200, 80, 255} : (Color){40, 45, 58, 255};
+        DrawRectangleLinesEx(r, hovered ? 2.0f : 1.0f, borderCol);
+
+        int iconSize = 58;
+        int iconX = rowX + 10;
+        int iconY = y + (rowH - iconSize) / 2;
+        Texture2D icon = ctx->assets->spellIcons[id];
+        if (icon.id > 0) {
+            DrawTexturePro(icon,
+                           (Rectangle){0, 0, (float)icon.width, (float)icon.height},
+                           (Rectangle){(float)iconX, (float)iconY, (float)iconSize, (float)iconSize},
+                           (Vector2){0, 0}, 0.0f, WHITE);
+            DrawRectangleLines(iconX, iconY, iconSize, iconSize, borderCol);
+        }
+
+        int textX = iconX + iconSize + 14;
+        DrawText(info->name, textX, y + 15, 18, info->color);
+        DrawText("Click to preview sound cue", textX, y + 42, 13, (Color){150, 155, 170, 255});
+
+        int badgeRadius = 16;
+        int badgeStartX = rowX + rowW - 120;
+        int orbSpacing = 38;
+        int orbIdx = 0;
+
+        for (int q = 0; q < info->req_quas; q++) {
+            DrawRecipeOrb(ctx->assets, ORB_QUAS, badgeStartX + (orbIdx * orbSpacing), y + rowH / 2, badgeRadius);
+            orbIdx++;
+        }
+        for (int w = 0; w < info->req_wex; w++) {
+            DrawRecipeOrb(ctx->assets, ORB_WEX, badgeStartX + (orbIdx * orbSpacing), y + rowH / 2, badgeRadius);
+            orbIdx++;
+        }
+        for (int e = 0; e < info->req_exort; e++) {
+            DrawRecipeOrb(ctx->assets, ORB_EXORT, badgeStartX + (orbIdx * orbSpacing), y + rowH / 2, badgeRadius);
+            orbIdx++;
+        }
+    }
+
+    // Back button
+    int btnY = 1040;
+    int backW = 540;
+    Rectangle backRec = {(float)(centerX - backW / 2), (float)btnY, (float)backW, 56};
+    DrawRectangleRec(backRec, (Color){30, 35, 48, 255});
+    DrawRectangleLinesEx(backRec, 1.5f, GOLD);
+    const char *backTxt = "< BACK TO PAUSE MENU (ESC)";
+    int bw = MeasureText(backTxt, 18);
+    DrawText(backTxt, centerX - bw / 2, btnY + 18, 18, GOLD);
 }
 
 static void DrawControlsView(void) {
     int centerX = VIRTUAL_WIDTH / 2;
-    int cardW = 540;
+    int cardW = 560;
     int cardX = centerX - cardW / 2;
 
-    DrawText("CONTROLS & BASICS", centerX - MeasureText("CONTROLS & BASICS", 26) / 2, 495, 26, GOLD);
-    DrawText("How to channel the Arsenal Magus", centerX - MeasureText("How to channel the Arsenal Magus", 14) / 2, 530, 14, (Color){150, 155, 170, 255});
+    DrawText("CONTROLS & BASICS", centerX - MeasureText("CONTROLS & BASICS", 28) / 2, 380, 28, GOLD);
+    DrawText("Master the Elemental Invocations", centerX - MeasureText("Master the Elemental Invocations", 14) / 2, 418, 14, (Color){150, 155, 170, 255});
 
-    int y = 570;
+    int y = 460;
     struct {
         const char *key;
         const char *action;
         Color color;
-    } controls[7] = {
+    } controls[8] = {
         {"Q", "Quas (Ice reagent - 3 orbs required to cast)", (Color){0, 210, 255, 255}},
         {"W", "Wex (Storm reagent - 3 orbs required to cast)", (Color){224, 64, 251, 255}},
         {"E", "Exort (Fire reagent - 3 orbs required to cast)", (Color){255, 87, 34, 255}},
         {"R", "Invoke Spell (Combines active 3 orbs into new spell)", (Color){186, 85, 211, 255}},
         {"D", "Cast Primary Invoked Spell (Slot 1)", GOLD},
         {"F", "Cast Secondary Invoked Spell (Slot 2)", GOLD},
-        {"ESC", "Pause / Back to Menu", LIGHTGRAY}
+        {"SPACE", "Start Run from Ready State", (Color){100, 240, 140, 255}},
+        {"ESC", "Pause Game / Open Options Menu", LIGHTGRAY}
     };
 
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < 8; i++) {
         int cy = y + i * 44;
-        DrawRectangle(cardX, cy, 55, 34, (Color){25, 28, 38, 255});
-        DrawRectangleLines(cardX, cy, 55, 34, controls[i].color);
-        int kW = MeasureText(controls[i].key, 16);
-        DrawText(controls[i].key, cardX + (55 - kW) / 2, cy + 9, 16, controls[i].color);
+        DrawRectangle(cardX, cy, 65, 36, (Color){25, 28, 38, 255});
+        DrawRectangleLines(cardX, cy, 65, 36, controls[i].color);
+        int kW = MeasureText(controls[i].key, 15);
+        DrawText(controls[i].key, cardX + (65 - kW) / 2, cy + 10, 15, controls[i].color);
 
-        DrawText(controls[i].action, cardX + 70, cy + 9, 14, (Color){215, 220, 235, 255});
+        DrawText(controls[i].action, cardX + 80, cy + 10, 14, (Color){215, 220, 235, 255});
     }
 
     // Endless mode info box
-    int infoY = 890;
-    DrawRectangle(cardX, infoY, cardW, 85, (Color){25, 28, 38, 255});
-    DrawRectangleLines(cardX, infoY, cardW, 85, (Color){255, 80, 80, 255});
-    DrawText("ENDLESS MODE RULES:", cardX + 15, infoY + 12, 15, (Color){255, 100, 100, 255});
-    DrawText("- Starts with 15.0 seconds on the clock.", cardX + 15, infoY + 34, 13, (Color){200, 205, 220, 255});
-    DrawText("- Each correct spell grants +2.5 seconds (max 25s).", cardX + 15, infoY + 50, 13, (Color){200, 205, 220, 255});
-    DrawText("- ANY missed invoke causes IMMEDIATE SUDDEN DEATH!", cardX + 15, infoY + 66, 13, (Color){255, 160, 160, 255});
+    int infoY = 835;
+    DrawRectangle(cardX, infoY, cardW, 110, (Color){25, 28, 38, 255});
+    DrawRectangleLines(cardX, infoY, cardW, 110, (Color){255, 80, 80, 255});
+    DrawText("ENDLESS SURVIVAL RULES:", cardX + 18, infoY + 14, 16, (Color){255, 100, 100, 255});
+    DrawText("- Round starts with 15.0 seconds on the clock.", cardX + 18, infoY + 38, 14, (Color){200, 205, 220, 255});
+    DrawText("- Each correct spell grants +2.5 seconds (max breathing room 25s).", cardX + 18, infoY + 58, 14, (Color){200, 205, 220, 255});
+    DrawText("- ANY missed invoke causes IMMEDIATE SUDDEN DEATH!", cardX + 18, infoY + 78, 14, (Color){255, 160, 160, 255});
 
     // Back button
-    int btnY = 1000;
-    Rectangle backRec = {(float)cardX, (float)btnY, (float)cardW, 56};
+    int btnY = 975;
+    Rectangle backRec = {(float)cardX, (float)btnY, (float)cardW, 58};
     DrawRectangleRec(backRec, (Color){30, 35, 48, 255});
     DrawRectangleLinesEx(backRec, 1.5f, GOLD);
-    const char *backTxt = "< BACK TO HELP (ESC)";
+    const char *backTxt = "< BACK TO PAUSE MENU (ESC)";
     int backW = MeasureText(backTxt, 18);
-    DrawText(backTxt, centerX - backW / 2, btnY + 18, 18, GOLD);
+    DrawText(backTxt, centerX - backW / 2, btnY + 19, 18, GOLD);
 }
 
-void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
-    (void)dt;
+static void DrawQuitConfirmView(int selectedButton) {
+    int centerX = VIRTUAL_WIDTH / 2;
+    int cardW = 500;
+    int cardH = 220;
+    int cardX = centerX - cardW / 2;
+    int cardY = 530;
 
-    // Safeguard: ensure screen shake is never active in menu
-    ctx->screenShakeTimer = 0.0f;
-    ctx->screenShakeIntensity = 0.0f;
+    DrawRectangle(cardX, cardY, cardW, cardH, (Color){22, 26, 36, 255});
+    DrawRectangleLinesEx((Rectangle){(float)cardX, (float)cardY, (float)cardW, (float)cardH}, 2.0f, (Color){255, 75, 75, 255});
+
+    const char *prompt = "ARE YOU SURE YOU WANT TO QUIT?";
+    int pFs = 20;
+    DrawText(prompt, centerX - MeasureText(prompt, pFs) / 2, cardY + 35, pFs, RAYWHITE);
+
+    const char *sub = "Any unsaved active run progress will be lost.";
+    int sFs = 14;
+    DrawText(sub, centerX - MeasureText(sub, sFs) / 2, cardY + 70, sFs, (Color){160, 165, 180, 255});
+
+    int btnW = 200;
+    int btnH = 52;
+    int btnY = cardY + 125;
+    int btn1X = centerX - btnW - 12;
+    int btn2X = centerX + 12;
+
+    bool sel1 = (selectedButton == 0);
+    bool sel2 = (selectedButton == 1);
+
+    DrawRectangle(btn1X, btnY, btnW, btnH, sel1 ? (Color){80, 25, 25, 255} : (Color){40, 20, 20, 255});
+    DrawRectangleLinesEx((Rectangle){(float)btn1X, (float)btnY, (float)btnW, (float)btnH}, sel1 ? 2.0f : 1.0f, (Color){255, 75, 75, 255});
+    DrawText("YES, QUIT", btn1X + (btnW - MeasureText("YES, QUIT", 17)) / 2, btnY + 16, 17, RAYWHITE);
+
+    DrawRectangle(btn2X, btnY, btnW, btnH, sel2 ? (Color){38, 48, 70, 255} : (Color){25, 30, 42, 255});
+    DrawRectangleLinesEx((Rectangle){(float)btn2X, (float)btnY, (float)btnW, (float)btnH}, sel2 ? 2.0f : 1.0f, sel2 ? GOLD : (Color){60, 65, 85, 255});
+    DrawText("CANCEL", btn2X + (btnW - MeasureText("CANCEL", 17)) / 2, btnY + 16, 17, RAYWHITE);
+}
+
+void UpdatePauseModal(GameContext *ctx, float dt, Vector2 mouse) {
+    (void)dt;
+    if (!ctx || !ctx->pause.active) return;
 
     int centerX = VIRTUAL_WIDTH / 2;
     int buttonX = centerX - MENU_BTN_WIDTH / 2;
 
-    Vector2 mouseDelta = GetMouseDelta();
-    bool mouseMoved = (fabsf(mouseDelta.x) > 0.8f || fabsf(mouseDelta.y) > 0.8f);
-
-    // Easter egg: click top orbs to hear element sound
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        int orbSpacing = 68;
-        int orbY = 428;
-        float orbR = 23.0f;
-        for (int i = 0; i < 3; i++) {
-            float posX = (float)(centerX + (i - 1) * orbSpacing);
-            if (CheckCollisionPointCircle(mouse, (Vector2){posX, (float)orbY}, orbR)) {
-                OrbType clicked = (i == 0) ? ORB_QUAS : ((i == 1) ? ORB_WEX : ORB_EXORT);
-                PlayOrbSound(ctx->audio, clicked);
-                break;
-            }
-        }
-    }
-
     // -------------------------------------------------------------
-    // PAGE: MAIN MENU
+    // MAIN PAUSE MENU
     // -------------------------------------------------------------
-    if (ctx->menuPage == MENU_PAGE_MAIN) {
-        int btnHeight = 74;
-        int btnGap = 14;
-
-        if (mouseMoved) {
-            for (int i = 0; i < MAIN_ITEM_COUNT; i++) {
-                int btnY = MENU_BTN_START_Y + i * (btnHeight + btnGap);
-                Rectangle btnRec = {(float)buttonX, (float)btnY, (float)MENU_BTN_WIDTH, (float)btnHeight};
-                if (CheckCollisionPointRec(mouse, btnRec) && ctx->menuSelected != i) {
-                    ctx->menuSelected = i;
-                    PlayOrbSound(ctx->audio, ORB_WEX);
-                }
-            }
-        }
-
-        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
-            ctx->menuSelected = (ctx->menuSelected - 1 + MAIN_ITEM_COUNT) % MAIN_ITEM_COUNT;
-            PlayOrbSound(ctx->audio, ORB_WEX);
-        }
-        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
-            ctx->menuSelected = (ctx->menuSelected + 1) % MAIN_ITEM_COUNT;
-            PlayOrbSound(ctx->audio, ORB_WEX);
-        }
-
-        if (IsKeyPressed(KEY_ONE))   ctx->menuSelected = 0;
-        if (IsKeyPressed(KEY_TWO))   ctx->menuSelected = 1;
-        if (IsKeyPressed(KEY_THREE)) ctx->menuSelected = 2;
-        if (IsKeyPressed(KEY_FOUR))  ctx->menuSelected = 3;
-        if (IsKeyPressed(KEY_FIVE))  ctx->menuSelected = 4;
-
-        bool activate = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE);
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            for (int i = 0; i < MAIN_ITEM_COUNT; i++) {
-                int btnY = MENU_BTN_START_Y + i * (btnHeight + btnGap);
-                Rectangle btnRec = {(float)buttonX, (float)btnY, (float)MENU_BTN_WIDTH, (float)btnHeight};
-                if (CheckCollisionPointRec(mouse, btnRec)) {
-                    ctx->menuSelected = i;
-                    activate = true;
-                    break;
-                }
-            }
-        }
-
-        if (activate) {
-            PlayInvokeSound(ctx->audio);
-            switch (ctx->menuSelected) {
-                case 0: // PLAY
-                    ctx->menuPage = MENU_PAGE_PLAY;
-                    ctx->menuSelected = 0;
-                    break;
-                case 1: // HIGH SCORE
-                    ctx->menuPage = MENU_PAGE_HIGHSCORE;
-                    ctx->menuSelected = 0;
-                    break;
-                case 2: // SETTINGS
-                    ctx->menuPage = MENU_PAGE_SETTINGS;
-                    ctx->menuSelected = 0;
-                    break;
-                case 3: // HELP
-                    ctx->menuPage = MENU_PAGE_HELP;
-                    ctx->menuSelected = 0;
-                    break;
-                case 4: // QUIT GAME
-                    ctx->shouldExit = true;
-                    break;
-                default: break;
-            }
-        }
-    }
-    // -------------------------------------------------------------
-    // PAGE: PLAY SUBMENU
-    // -------------------------------------------------------------
-    else if (ctx->menuPage == MENU_PAGE_PLAY) {
-        int btnHeight = 82;
-        int btnGap = 16;
-
+    if (ctx->pause.page == PAUSE_PAGE_MAIN) {
         if (IsKeyPressed(KEY_ESCAPE)) {
-            ctx->menuPage = MENU_PAGE_MAIN;
-            ctx->menuSelected = 0;
-            PlayOrbSound(ctx->audio, ORB_QUAS);
+            ClosePauseModal(ctx);
             return;
         }
 
-        if (mouseMoved) {
-            for (int i = 0; i < PLAY_ITEM_COUNT; i++) {
-                int btnY = MENU_BTN_START_Y + i * (btnHeight + btnGap);
-                Rectangle btnRec = {(float)buttonX, (float)btnY, (float)MENU_BTN_WIDTH, (float)btnHeight};
-                if (CheckCollisionPointRec(mouse, btnRec) && ctx->menuSelected != i) {
-                    ctx->menuSelected = i;
-                    PlayOrbSound(ctx->audio, ORB_WEX);
-                }
+        Vector2 mouseDelta = GetMouseDelta();
+        bool mouseMoved = (fabsf(mouseDelta.x) > 0.8f || fabsf(mouseDelta.y) > 0.8f);
+
+        for (int i = 0; i < PAUSE_ITEM_COUNT; i++) {
+            int btnY = MENU_BTN_START_Y + i * (72 + 14);
+            Rectangle hit = {(float)buttonX, (float)btnY, (float)MENU_BTN_WIDTH, 72.0f};
+            if (mouseMoved && CheckCollisionPointRec(mouse, hit)) {
+                ctx->pause.selectedButton = i;
             }
         }
 
         if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
-            ctx->menuSelected = (ctx->menuSelected - 1 + PLAY_ITEM_COUNT) % PLAY_ITEM_COUNT;
+            ctx->pause.selectedButton--;
+            if (ctx->pause.selectedButton < 0) ctx->pause.selectedButton = PAUSE_ITEM_COUNT - 1;
             PlayOrbSound(ctx->audio, ORB_WEX);
         }
         if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
-            ctx->menuSelected = (ctx->menuSelected + 1) % PLAY_ITEM_COUNT;
+            ctx->pause.selectedButton++;
+            if (ctx->pause.selectedButton >= PAUSE_ITEM_COUNT) ctx->pause.selectedButton = 0;
             PlayOrbSound(ctx->audio, ORB_WEX);
         }
 
-        if (IsKeyPressed(KEY_ONE))   ctx->menuSelected = 0;
-        if (IsKeyPressed(KEY_TWO))   ctx->menuSelected = 1;
-        if (IsKeyPressed(KEY_THREE)) ctx->menuSelected = 2;
-        if (IsKeyPressed(KEY_FOUR))  ctx->menuSelected = 3;
+        // Direct number keys
+        for (int k = KEY_ONE; k <= KEY_SEVEN; k++) {
+            if (IsKeyPressed(k)) {
+                int idx = k - KEY_ONE;
+                if (idx < PAUSE_ITEM_COUNT) {
+                    ctx->pause.selectedButton = idx;
+                    PlayInvokeSound(ctx->audio);
+                }
+            }
+        }
 
-        bool activate = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE);
+        bool activate = false;
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+            activate = true;
+        }
+
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            for (int i = 0; i < PLAY_ITEM_COUNT; i++) {
-                int btnY = MENU_BTN_START_Y + i * (btnHeight + btnGap);
-                Rectangle btnRec = {(float)buttonX, (float)btnY, (float)MENU_BTN_WIDTH, (float)btnHeight};
-                if (CheckCollisionPointRec(mouse, btnRec)) {
-                    ctx->menuSelected = i;
+            for (int i = 0; i < PAUSE_ITEM_COUNT; i++) {
+                int btnY = MENU_BTN_START_Y + i * (72 + 14);
+                Rectangle hit = {(float)buttonX, (float)btnY, (float)MENU_BTN_WIDTH, 72.0f};
+                if (CheckCollisionPointRec(mouse, hit)) {
+                    ctx->pause.selectedButton = i;
                     activate = true;
                     break;
                 }
@@ -540,114 +582,58 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
 
         if (activate) {
             PlayInvokeSound(ctx->audio);
-            switch (ctx->menuSelected) {
-                case 0: // Endless Survival
-                    ResetGameplaySession(ctx, GAME_MODE_ENDLESS);
-                    StartTransition(&ctx->transition, SCREEN_ENDLESS);
+            switch (ctx->pause.selectedButton) {
+                case 0: // RESUME
+                    ClosePauseModal(ctx);
                     break;
-                case 1: // Time Attack
-                    ResetGameplaySession(ctx, GAME_MODE_TIME_ATTACK);
-                    StartTransition(&ctx->transition, SCREEN_TIME_ATTACK);
+                case 1: // HALL OF INVOCATION
+                    ctx->pause.page = PAUSE_PAGE_HIGHSCORE;
                     break;
-                case 2: // Practice Mode
-                    ResetGameplaySession(ctx, GAME_MODE_PRACTICE);
-                    StartTransition(&ctx->transition, SCREEN_PRACTICE);
+                case 2: // SETTINGS & AUDIO
+                    ctx->pause.page = PAUSE_PAGE_SETTINGS;
                     break;
-                case 3: // Back
-                    ctx->menuPage = MENU_PAGE_MAIN;
-                    ctx->menuSelected = 0;
+                case 3: // SPELLBOOK
+                    ctx->pause.page = PAUSE_PAGE_SPELLBOOK;
                     break;
+                case 4: // CONTROLS & RULES
+                    ctx->pause.page = PAUSE_PAGE_CONTROLS;
+                    break;
+                case 5: // RESTART RUN
+                    ClosePauseModal(ctx);
+                    ResetGameplaySession(ctx);
+                    break;
+#if !defined(PLATFORM_WEB)
+                case 6: // QUIT GAME
+                    ctx->pause.page = PAUSE_PAGE_QUIT_CONFIRM;
+                    ctx->pause.selectedButton = 1; // Default to cancel
+                    break;
+#endif
                 default: break;
             }
         }
     }
     // -------------------------------------------------------------
-    // PAGE: HELP SUBMENU
+    // SUB-PAGE: HALL OF INVOCATION (HIGH SCORES)
     // -------------------------------------------------------------
-    else if (ctx->menuPage == MENU_PAGE_HELP) {
-        int btnHeight = 86;
-        int btnGap = 18;
-
-        if (IsKeyPressed(KEY_ESCAPE)) {
-            ctx->menuPage = MENU_PAGE_MAIN;
-            ctx->menuSelected = 3; // return pointing to HELP
-            PlayOrbSound(ctx->audio, ORB_QUAS);
-            return;
-        }
-
-        if (mouseMoved) {
-            for (int i = 0; i < HELP_ITEM_COUNT; i++) {
-                int btnY = MENU_BTN_START_Y + i * (btnHeight + btnGap);
-                Rectangle btnRec = {(float)buttonX, (float)btnY, (float)MENU_BTN_WIDTH, (float)btnHeight};
-                if (CheckCollisionPointRec(mouse, btnRec) && ctx->menuSelected != i) {
-                    ctx->menuSelected = i;
-                    PlayOrbSound(ctx->audio, ORB_WEX);
-                }
-            }
-        }
-
-        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
-            ctx->menuSelected = (ctx->menuSelected - 1 + HELP_ITEM_COUNT) % HELP_ITEM_COUNT;
-            PlayOrbSound(ctx->audio, ORB_WEX);
-        }
-        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
-            ctx->menuSelected = (ctx->menuSelected + 1) % HELP_ITEM_COUNT;
-            PlayOrbSound(ctx->audio, ORB_WEX);
-        }
-
-        if (IsKeyPressed(KEY_ONE))   ctx->menuSelected = 0;
-        if (IsKeyPressed(KEY_TWO))   ctx->menuSelected = 1;
-        if (IsKeyPressed(KEY_THREE)) ctx->menuSelected = 2;
-
-        bool activate = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE);
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            for (int i = 0; i < HELP_ITEM_COUNT; i++) {
-                int btnY = MENU_BTN_START_Y + i * (btnHeight + btnGap);
-                Rectangle btnRec = {(float)buttonX, (float)btnY, (float)MENU_BTN_WIDTH, (float)btnHeight};
-                if (CheckCollisionPointRec(mouse, btnRec)) {
-                    ctx->menuSelected = i;
-                    activate = true;
-                    break;
-                }
-            }
-        }
-
-        if (activate) {
-            PlayInvokeSound(ctx->audio);
-            switch (ctx->menuSelected) {
-                case 0: // Spell Book
-                    StartTransition(&ctx->transition, SCREEN_SPELLBOOK);
-                    break;
-                case 1: // Controls & Basics
-                    ctx->menuPage = MENU_PAGE_CONTROLS;
-                    break;
-                case 2: // Back
-                    ctx->menuPage = MENU_PAGE_MAIN;
-                    ctx->menuSelected = 3;
-                    break;
-                default: break;
-            }
-        }
-    }
-    // -------------------------------------------------------------
-    // PAGE: HIGH SCORES / SETTINGS / CONTROLS (Back on ESC or Button)
-    // -------------------------------------------------------------
-    else if (ctx->menuPage == MENU_PAGE_HIGHSCORE) {
-        Rectangle backRec = {(float)buttonX, 1000.0f, (float)MENU_BTN_WIDTH, 56.0f};
+    else if (ctx->pause.page == PAUSE_PAGE_HIGHSCORE) {
+        Rectangle backRec = {(float)buttonX, 930.0f, (float)MENU_BTN_WIDTH, 58.0f};
         if (IsKeyPressed(KEY_ESCAPE) || (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, backRec))) {
-            ctx->menuPage = MENU_PAGE_MAIN;
-            ctx->menuSelected = 1;
+            ctx->pause.page = PAUSE_PAGE_MAIN;
+            ctx->pause.selectedButton = 1;
             PlayOrbSound(ctx->audio, ORB_QUAS);
         }
     }
-    else if (ctx->menuPage == MENU_PAGE_SETTINGS) {
-        // Handle volume slider clicks
+    // -------------------------------------------------------------
+    // SUB-PAGE: SETTINGS & AUDIO
+    // -------------------------------------------------------------
+    else if (ctx->pause.page == PAUSE_PAGE_SETTINGS) {
+        // Slider drag
         if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-            int startY = 570;
-            int trackW = 420;
-            for (int i = 0; i < 4; i++) {
-                int y = startY + i * 75;
-                Rectangle trackHit = {(float)buttonX - 10, (float)(y + 16), (float)trackW + 20, 30.0f};
+            int startY = 470;
+            int trackW = 440;
+            for (int i = 0; i < 3; i++) {
+                int y = startY + i * 85;
+                Rectangle trackHit = {(float)buttonX - 10, (float)(y + 20), (float)trackW + 20, 32.0f};
                 if (CheckCollisionPointRec(mouse, trackHit)) {
                     float val = (mouse.x - (float)buttonX) / (float)trackW;
                     if (val < 0.0f) val = 0.0f;
@@ -660,9 +646,6 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
                         ctx->settings.sfxVolume = val;
                         if (ctx->audio) ctx->audio->sfxVolume = val;
                     } else if (i == 2) {
-                        ctx->settings.voiceVolume = val;
-                        if (ctx->audio) ctx->audio->voiceVolume = val;
-                    } else if (i == 3) {
                         ctx->settings.musicVolume = val;
                     }
                     SaveSettings(&ctx->settings);
@@ -672,78 +655,160 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
 
         // Toggles
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            int togY = 880;
-            Rectangle r1 = {(float)buttonX + 170, (float)togY + 25, 80, 24};
-            Rectangle r2 = {(float)buttonX + 170, (float)togY + 53, 80, 24};
-            Rectangle r3 = {(float)buttonX + 170, (float)togY + 81, 80, 24};
+            int togY = 750;
+            Rectangle r1 = {(float)buttonX + 210, (float)togY + 34, 80, 24};
+            Rectangle r2 = {(float)buttonX + 210, (float)togY + 72, 80, 24};
 
             if (CheckCollisionPointRec(mouse, r1)) {
-                ctx->settings.showRecipeHelper = !ctx->settings.showRecipeHelper;
-                SaveSettings(&ctx->settings);
-                PlayOrbSound(ctx->audio, ORB_WEX);
-            } else if (CheckCollisionPointRec(mouse, r2)) {
                 ctx->settings.showActionFeed = !ctx->settings.showActionFeed;
                 SaveSettings(&ctx->settings);
                 PlayOrbSound(ctx->audio, ORB_WEX);
-            } else if (CheckCollisionPointRec(mouse, r3)) {
+            } else if (CheckCollisionPointRec(mouse, r2)) {
                 ctx->settings.screenShake = !ctx->settings.screenShake;
                 SaveSettings(&ctx->settings);
                 PlayOrbSound(ctx->audio, ORB_WEX);
             }
         }
 
-        Rectangle backRec = {(float)buttonX, 1000.0f, (float)MENU_BTN_WIDTH, 56.0f};
+        Rectangle backRec = {(float)buttonX, 940.0f, (float)MENU_BTN_WIDTH, 58.0f};
         if (IsKeyPressed(KEY_ESCAPE) || (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, backRec))) {
-            ctx->menuPage = MENU_PAGE_MAIN;
-            ctx->menuSelected = 2;
+            ctx->pause.page = PAUSE_PAGE_MAIN;
+            ctx->pause.selectedButton = 2;
             PlayOrbSound(ctx->audio, ORB_QUAS);
         }
     }
-    else if (ctx->menuPage == MENU_PAGE_CONTROLS) {
-        Rectangle backRec = {(float)buttonX, 1000.0f, (float)MENU_BTN_WIDTH, 56.0f};
+    // -------------------------------------------------------------
+    // SUB-PAGE: SPELLBOOK
+    // -------------------------------------------------------------
+    else if (ctx->pause.page == PAUSE_PAGE_SPELLBOOK) {
+        int rowW = 650;
+        int rowH = 76;
+        int startY = 150;
+        int gap = 10;
+        int rowX = centerX - rowW / 2;
+
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            for (int i = 0; i < SPELL_COUNT; i++) {
+                int y = startY + i * (rowH + gap);
+                Rectangle r = {(float)rowX, (float)y, (float)rowW, (float)rowH};
+                if (CheckCollisionPointRec(mouse, r)) {
+                    PlaySpellSound(ctx->audio, (SpellId)i);
+                    break;
+                }
+            }
+        }
+
+        int backW = 540;
+        Rectangle backRec = {(float)(centerX - backW / 2), 1040.0f, (float)backW, 56.0f};
         if (IsKeyPressed(KEY_ESCAPE) || (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, backRec))) {
-            ctx->menuPage = MENU_PAGE_HELP;
-            ctx->menuSelected = 1;
+            ctx->pause.page = PAUSE_PAGE_MAIN;
+            ctx->pause.selectedButton = 3;
             PlayOrbSound(ctx->audio, ORB_QUAS);
+        }
+    }
+    // -------------------------------------------------------------
+    // SUB-PAGE: CONTROLS & RULES
+    // -------------------------------------------------------------
+    else if (ctx->pause.page == PAUSE_PAGE_CONTROLS) {
+        Rectangle backRec = {(float)buttonX, 975.0f, (float)MENU_BTN_WIDTH, 58.0f};
+        if (IsKeyPressed(KEY_ESCAPE) || (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, backRec))) {
+            ctx->pause.page = PAUSE_PAGE_MAIN;
+            ctx->pause.selectedButton = 4;
+            PlayOrbSound(ctx->audio, ORB_QUAS);
+        }
+    }
+    // -------------------------------------------------------------
+    // SUB-PAGE: QUIT CONFIRMATION
+    // -------------------------------------------------------------
+    else if (ctx->pause.page == PAUSE_PAGE_QUIT_CONFIRM) {
+        int cardY = 530;
+        int btnW = 200;
+        int btnH = 52;
+        int btnY = cardY + 125;
+        int btn1X = centerX - btnW - 12;
+        int btn2X = centerX + 12;
+
+        Rectangle r1 = {(float)btn1X, (float)btnY, (float)btnW, (float)btnH};
+        Rectangle r2 = {(float)btn2X, (float)btnY, (float)btnW, (float)btnH};
+
+        Vector2 mouseDelta = GetMouseDelta();
+        if (fabsf(mouseDelta.x) > 0.8f || fabsf(mouseDelta.y) > 0.8f) {
+            if (CheckCollisionPointRec(mouse, r1)) ctx->pause.selectedButton = 0;
+            if (CheckCollisionPointRec(mouse, r2)) ctx->pause.selectedButton = 1;
+        }
+
+        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) ctx->pause.selectedButton = 0;
+        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) ctx->pause.selectedButton = 1;
+
+        if (IsKeyPressed(KEY_Y)) {
+            ctx->shouldExit = true;
+            return;
+        }
+        if (IsKeyPressed(KEY_N) || IsKeyPressed(KEY_ESCAPE)) {
+            ctx->pause.page = PAUSE_PAGE_MAIN;
+            ctx->pause.selectedButton = 6;
+            PlayOrbSound(ctx->audio, ORB_QUAS);
+            return;
+        }
+
+        bool click1 = (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, r1));
+        bool click2 = (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, r2));
+
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || click1 || click2) {
+            int choice = (click1) ? 0 : (click2 ? 1 : ctx->pause.selectedButton);
+            if (choice == 0) {
+                ctx->shouldExit = true;
+            } else {
+                ctx->pause.page = PAUSE_PAGE_MAIN;
+                ctx->pause.selectedButton = 6;
+                PlayOrbSound(ctx->audio, ORB_QUAS);
+            }
         }
     }
 }
 
-void DrawMenuScreen(GameContext *ctx, Vector2 mouse) {
-    ClearBackground((Color){18, 20, 24, 255});
-    DrawHeader(ctx);
+void DrawPauseModal(GameContext *ctx, Vector2 mouse) {
+    if (!ctx || !ctx->pause.active) return;
 
     int centerX = VIRTUAL_WIDTH / 2;
 
-    switch (ctx->menuPage) {
-        case MENU_PAGE_MAIN:
-            DrawMenuButtons(MAIN_ITEM_COUNT, mainMenuItems, ctx->menuSelected, MENU_BTN_START_Y, 74, 14);
+    // Dim background overlay
+    DrawRectangle(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT, (Color){10, 12, 16, 235});
+
+    switch (ctx->pause.page) {
+        case PAUSE_PAGE_MAIN:
+            DrawHeader(ctx);
+            DrawMenuButtons(PAUSE_ITEM_COUNT, pauseMenuItems, ctx->pause.selectedButton, MENU_BTN_START_Y, 72, 14);
+
+            // Instructions footer
+            {
+                const char *inst = "Navigate: [UP / DOWN] or [MOUSE]    Select: [ENTER]    Resume: [ESC]";
+                int instW = MeasureText(inst, 14);
+                DrawText(inst, centerX - instW / 2, VIRTUAL_HEIGHT - 65, 14, (Color){120, 125, 140, 255});
+            }
             break;
-        case MENU_PAGE_PLAY:
-            DrawMenuButtons(PLAY_ITEM_COUNT, playMenuItems, ctx->menuSelected, MENU_BTN_START_Y, 82, 16);
-            break;
-        case MENU_PAGE_HELP:
-            DrawMenuButtons(HELP_ITEM_COUNT, helpMenuItems, ctx->menuSelected, MENU_BTN_START_Y, 86, 18);
-            break;
-        case MENU_PAGE_HIGHSCORE:
+
+        case PAUSE_PAGE_HIGHSCORE:
             DrawHighScoresView(ctx);
             break;
-        case MENU_PAGE_SETTINGS:
+
+        case PAUSE_PAGE_SETTINGS:
             DrawSettingsView(ctx, mouse);
             break;
-        case MENU_PAGE_CONTROLS:
+
+        case PAUSE_PAGE_SPELLBOOK:
+            DrawSpellbookView(ctx, mouse);
+            break;
+
+        case PAUSE_PAGE_CONTROLS:
             DrawControlsView();
             break;
+
+        case PAUSE_PAGE_QUIT_CONFIRM:
+            DrawQuitConfirmView(ctx->pause.selectedButton);
+            break;
+
         default:
             break;
     }
-
-    // Footer
-    const char *instructions = "Navigate: [UP / DOWN] or [MOUSE]    Select: [ENTER] or [CLICK]    Back: [ESC]";
-    int instW = MeasureText(instructions, 14);
-    DrawText(instructions, centerX - instW / 2, VIRTUAL_HEIGHT - 65, 14, (Color){110, 115, 130, 255});
-
-    const char *ver = "v0.7.0 - Built with Raylib & C99";
-    int verW = MeasureText(ver, 12);
-    DrawText(ver, centerX - verW / 2, VIRTUAL_HEIGHT - 40, 12, (Color){75, 80, 95, 255});
 }

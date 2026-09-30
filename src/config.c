@@ -9,13 +9,9 @@ void InitDefaultSettings(GameSettings *settings) {
     if (!settings) return;
     settings->masterVolume = 1.0f;
     settings->sfxVolume = 1.0f;
-    settings->voiceVolume = 1.0f;
     settings->musicVolume = 0.8f;
     settings->sfxMuted = false;
-    settings->voiceMuted = false;
     settings->musicMuted = false;
-    settings->roundDuration = 60;
-    settings->showRecipeHelper = true;
     settings->showActionFeed = true;
     settings->screenShake = true;
     settings->fullscreen = false;
@@ -44,8 +40,7 @@ void SaveSettings(const GameSettings *settings) {
 void InitDefaultHighScores(HighScoreData *scores) {
     if (!scores) return;
     memset(scores, 0, sizeof(HighScoreData));
-    scores->endlessBestRank = DOTA_RANK_HERALD;
-    scores->timeAttackBestRank = DOTA_RANK_HERALD;
+    scores->bestRank = DOTA_RANK_HERALD;
 }
 
 void LoadHighScores(HighScoreData *scores) {
@@ -68,28 +63,18 @@ void SaveHighScores(const HighScoreData *scores) {
     }
 }
 
-bool UpdateHighScores(HighScoreData *scores, GameplayMode mode, int score, int streak, int spells, DotaRank rank) {
+bool UpdateHighScores(HighScoreData *scores, int score, int streak, int spells, float timeSurvived, DotaRank rank) {
     if (!scores) return false;
     bool isNewRecord = false;
 
-    if (mode == GAME_MODE_ENDLESS) {
-        if (score > scores->endlessBestScore) {
-            scores->endlessBestScore = score;
-            scores->endlessBestStreak = streak;
-            scores->endlessBestSpells = spells;
-            scores->endlessBestRank = rank;
-            isNewRecord = true;
-            SaveHighScores(scores);
-        }
-    } else if (mode == GAME_MODE_TIME_ATTACK) {
-        if (score > scores->timeAttackBestScore) {
-            scores->timeAttackBestScore = score;
-            scores->timeAttackBestStreak = streak;
-            scores->timeAttackBestSpells = spells;
-            scores->timeAttackBestRank = rank;
-            isNewRecord = true;
-            SaveHighScores(scores);
-        }
+    if (score > scores->bestScore) {
+        scores->bestScore = score;
+        scores->bestStreak = streak;
+        scores->bestSpells = spells;
+        scores->bestTime = timeSurvived;
+        scores->bestRank = rank;
+        isNewRecord = true;
+        SaveHighScores(scores);
     }
 
     return isNewRecord;
@@ -113,25 +98,13 @@ RankInfo GetDotaRankInfo(DotaRank rank) {
     return rankTable[rank];
 }
 
-DotaRank CalculateDotaRank(GameplayMode mode, int correctSpells) {
-    if (mode == GAME_MODE_ENDLESS) {
-        if (correctSpells >= 50) return DOTA_RANK_IMMORTAL;
-        if (correctSpells >= 40) return DOTA_RANK_DIVINE;
-        if (correctSpells >= 30) return DOTA_RANK_ANCIENT;
-        if (correctSpells >= 22) return DOTA_RANK_LEGEND;
-        if (correctSpells >= 15) return DOTA_RANK_ARCHON;
-        if (correctSpells >= 10) return DOTA_RANK_CRUSADER;
-        if (correctSpells >= 5)  return DOTA_RANK_GUARDIAN;
-        return DOTA_RANK_HERALD;
-    } else {
-        // Time Attack (60s default)
-        if (correctSpells >= 60) return DOTA_RANK_IMMORTAL;
-        if (correctSpells >= 50) return DOTA_RANK_DIVINE;
-        if (correctSpells >= 40) return DOTA_RANK_ANCIENT;
-        if (correctSpells >= 31) return DOTA_RANK_LEGEND;
-        if (correctSpells >= 23) return DOTA_RANK_ARCHON;
-        if (correctSpells >= 15) return DOTA_RANK_CRUSADER;
-        if (correctSpells >= 8)  return DOTA_RANK_GUARDIAN;
-        return DOTA_RANK_HERALD;
-    }
+DotaRank CalculateDotaRank(int correctSpells) {
+    if (correctSpells >= 50) return DOTA_RANK_IMMORTAL;
+    if (correctSpells >= 40) return DOTA_RANK_DIVINE;
+    if (correctSpells >= 30) return DOTA_RANK_ANCIENT;
+    if (correctSpells >= 22) return DOTA_RANK_LEGEND;
+    if (correctSpells >= 15) return DOTA_RANK_ARCHON;
+    if (correctSpells >= 10) return DOTA_RANK_CRUSADER;
+    if (correctSpells >= 5)  return DOTA_RANK_GUARDIAN;
+    return DOTA_RANK_HERALD;
 }

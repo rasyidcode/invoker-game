@@ -36,16 +36,8 @@ static void UpdateDrawFrame(void) {
             case SCREEN_LOGO:
                 UpdateLogoScreen(&gApp.ctx, dt);
                 break;
-            case SCREEN_MENU:
-                UpdateMenuScreen(&gApp.ctx, dt, mouse);
-                break;
-            case SCREEN_PRACTICE:
-            case SCREEN_TIME_ATTACK:
-            case SCREEN_ENDLESS:
+            case SCREEN_GAMEPLAY:
                 UpdateGameplayScreen(&gApp.ctx, dt, mouse);
-                break;
-            case SCREEN_SPELLBOOK:
-                UpdateSpellbookScreen(&gApp.ctx, dt, mouse);
                 break;
             default:
                 break;
@@ -60,16 +52,8 @@ static void UpdateDrawFrame(void) {
             case SCREEN_LOGO:
                 DrawLogoScreen();
                 break;
-            case SCREEN_MENU:
-                DrawMenuScreen(&gApp.ctx, mouse);
-                break;
-            case SCREEN_PRACTICE:
-            case SCREEN_TIME_ATTACK:
-            case SCREEN_ENDLESS:
+            case SCREEN_GAMEPLAY:
                 DrawGameplayScreen(&gApp.ctx, mouse);
-                break;
-            case SCREEN_SPELLBOOK:
-                DrawSpellbookScreen(&gApp.ctx, mouse);
                 break;
             default:
                 break;
@@ -97,11 +81,10 @@ static void UpdateDrawFrame(void) {
 
         float shakeOffsetX = 0.0f;
         float shakeOffsetY = 0.0f;
-        bool isGameplayScreen = (gApp.ctx.currentScreen == SCREEN_PRACTICE ||
-                                 gApp.ctx.currentScreen == SCREEN_TIME_ATTACK ||
-                                 gApp.ctx.currentScreen == SCREEN_ENDLESS);
-
-        if (isGameplayScreen && gApp.ctx.screenShakeTimer > 0.0f && gApp.ctx.settings.screenShake) {
+        if (gApp.ctx.currentScreen == SCREEN_GAMEPLAY &&
+            !gApp.ctx.pause.active &&
+            gApp.ctx.screenShakeTimer > 0.0f &&
+            gApp.ctx.settings.screenShake) {
             float intensity = gApp.ctx.screenShakeIntensity * (gApp.ctx.screenShakeTimer / 0.35f);
             shakeOffsetX = ((float)GetRandomValue(-100, 100) / 100.0f) * intensity;
             shakeOffsetY = ((float)GetRandomValue(-100, 100) / 100.0f) * intensity;
@@ -131,6 +114,11 @@ int main(void) {
 #endif
     SetExitKey(KEY_NULL); // Prevent ESC from closing the game (used for in-game navigation)
     SetTargetFPS(TARGET_FPS);
+
+    if (!IsWindowReady()) {
+        TraceLog(LOG_ERROR, "Cannot run headless without valid display device.");
+        return 1;
+    }
 
     // Initialize Assets and Audio Systems
     InitGameAssets(&gApp.assets);
