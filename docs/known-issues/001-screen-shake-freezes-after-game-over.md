@@ -1,6 +1,6 @@
 # Issue #001: Screen Shake Timer Freezes on Game Over Modal and Persists Indefinitely Into Main Menu
 
-- **Status**: Open
+- **Status**: Resolved
 - **Severity**: Medium (Visual Polish / UX)
 - **Component**: Graphics / UI State Management
 - **Platforms Affected**: WebAssembly (Browser), Desktop (Linux, macOS, Windows)
@@ -99,3 +99,13 @@ ctx->screenShakeIntensity = 0.0f;
    Move the screen shake decay logic in `src/screen_gameplay.c` before `if (ctx->gameOver.active)`, or decrement `ctx->screenShakeTimer` inside the modal update loop so the shake smoothly decays while the modal is visible.
 2. **Clear Shake on Menu Transition**:
    Zero out `ctx->screenShakeTimer = 0.0f;` and `ctx->screenShakeIntensity = 0.0f;` when exiting to `SCREEN_MENU` in `src/screen_gameplay.c`.
+
+---
+
+## 7. Resolution
+
+Fixed across multiple layers in commit:
+1. **Modal Shake & Particle Decay**: In `src/screen_gameplay.c`, moved `ctx->screenShakeTimer` decay and `UpdateParticleSystem(&ctx->particles, dt)` before `if (ctx->gameOver.active)`. This ensures screen shake cleanly finishes its ~0.20s decay while viewing the Game Over modal, and miss burst particles disperse naturally rather than freezing mid-air.
+2. **Explicit Zero on Menu Transitions**: In `src/screen_gameplay.c`, explicitly zeroed out `ctx->screenShakeTimer = 0.0f;` and `ctx->screenShakeIntensity = 0.0f;` on all transitions back to `SCREEN_MENU` (via the Game Over modal's "MAIN MENU" button, modal `[ESCAPE]`, and gameplay `[ESCAPE]`).
+3. **Menu Screen Safeguard**: In `src/screen_menu.c`, added a zeroing safeguard at the top of `UpdateMenuScreen()` to guarantee shake state is cleared upon entering or updating menus.
+4. **Presentation Viewport Scoping**: In `src/main.c`, restricted render texture shake offset calculation strictly to active gameplay viewports (`SCREEN_PRACTICE`, `SCREEN_TIME_ATTACK`, and `SCREEN_ENDLESS`), preventing non-gameplay screens from ever jittering.

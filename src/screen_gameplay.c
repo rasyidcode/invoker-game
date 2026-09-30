@@ -546,6 +546,16 @@ static void DrawGameOverModal(const GameContext *ctx, Vector2 mouse) {
 
 void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
     // -------------------------------------------------------------
+    // FRAME TIMERS & ACTIVE EFFECTS (DECAY EVEN DURING MODAL)
+    // -------------------------------------------------------------
+    if (ctx->screenShakeTimer > 0.0f) {
+        ctx->screenShakeTimer -= dt;
+        if (ctx->screenShakeTimer < 0.0f) ctx->screenShakeTimer = 0.0f;
+    }
+
+    UpdateParticleSystem(&ctx->particles, dt);
+
+    // -------------------------------------------------------------
     // MODAL STATE: GAME OVER POPUP
     // -------------------------------------------------------------
     if (ctx->gameOver.active) {
@@ -589,6 +599,8 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
             } else {
                 // Return to Main Menu
                 PlayOrbSound(ctx->audio, ORB_QUAS);
+                ctx->screenShakeTimer = 0.0f;
+                ctx->screenShakeIntensity = 0.0f;
                 StartTransition(&ctx->transition, SCREEN_MENU);
             }
             return;
@@ -596,6 +608,8 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
 
         if (IsKeyPressed(KEY_ESCAPE)) {
             PlayOrbSound(ctx->audio, ORB_QUAS);
+            ctx->screenShakeTimer = 0.0f;
+            ctx->screenShakeIntensity = 0.0f;
             StartTransition(&ctx->transition, SCREEN_MENU);
             return;
         }
@@ -608,6 +622,8 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
     // -------------------------------------------------------------
     if (IsKeyPressed(KEY_ESCAPE)) {
         PlayOrbSound(ctx->audio, ORB_WEX);
+        ctx->screenShakeTimer = 0.0f;
+        ctx->screenShakeIntensity = 0.0f;
         StartTransition(&ctx->transition, SCREEN_MENU);
         return;
     }
@@ -629,12 +645,6 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
     }
 
     UpdateActionLog(&ctx->actionLog, dt);
-    UpdateParticleSystem(&ctx->particles, dt);
-
-    if (ctx->screenShakeTimer > 0.0f) {
-        ctx->screenShakeTimer -= dt;
-        if (ctx->screenShakeTimer < 0.0f) ctx->screenShakeTimer = 0.0f;
-    }
 
     // Subtle ambient sparkles orbiting around active floating orbs
     int orbSpacing = 153;

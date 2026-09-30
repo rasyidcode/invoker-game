@@ -97,7 +97,11 @@ static void UpdateDrawFrame(void) {
 
         float shakeOffsetX = 0.0f;
         float shakeOffsetY = 0.0f;
-        if (gApp.ctx.screenShakeTimer > 0.0f && gApp.ctx.settings.screenShake) {
+        bool isGameplayScreen = (gApp.ctx.currentScreen == SCREEN_PRACTICE ||
+                                 gApp.ctx.currentScreen == SCREEN_TIME_ATTACK ||
+                                 gApp.ctx.currentScreen == SCREEN_ENDLESS);
+
+        if (isGameplayScreen && gApp.ctx.screenShakeTimer > 0.0f && gApp.ctx.settings.screenShake) {
             float intensity = gApp.ctx.screenShakeIntensity * (gApp.ctx.screenShakeTimer / 0.35f);
             shakeOffsetX = ((float)GetRandomValue(-100, 100) / 100.0f) * intensity;
             shakeOffsetY = ((float)GetRandomValue(-100, 100) / 100.0f) * intensity;

@@ -389,6 +389,10 @@ static void DrawControlsView(void) {
 void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
     (void)dt;
 
+    // Safeguard: ensure screen shake is never active in menu
+    ctx->screenShakeTimer = 0.0f;
+    ctx->screenShakeIntensity = 0.0f;
+
     int centerX = VIRTUAL_WIDTH / 2;
     int buttonX = centerX - MENU_BTN_WIDTH / 2;
 

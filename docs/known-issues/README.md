@@ -8,7 +8,7 @@ This directory tracks documented bugs, visual glitches, and gameplay quirks disc
 
 | ID | Title | Component | Severity | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **[#001](./001-screen-shake-freezes-after-game-over.md)** | Screen Shake Timer Freezes on Game Over Modal & Persists Into Main Menu | Graphics / UI | Medium | Open |
+| **[#001](./001-screen-shake-freezes-after-game-over.md)** | Screen Shake Timer Freezes on Game Over Modal & Persists Into Main Menu | Graphics / UI | Medium | Resolved |
 
 ---
 

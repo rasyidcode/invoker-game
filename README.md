@@ -57,14 +57,6 @@ The Invoker Game challenges players to rapidly manipulate three elemental reagen
 
 ---
 
-## Sister Projects
-
-Extended mechanics and alternate playstyles are maintained in dedicated repositories:
-* **[Invoker: Arcane Surge](../invoker-surge)**: High-speed arcade game featuring momentum decay bars and frenzy spell-cycling.
-* **[Invoker: Match Simulator](../invoker-sim)**: Authentic tactical Dota 2 sandbox with strict mana pools, cooldown rotations, and combo trials.
-
----
-
 ## Default Controls
 
 | Action | Keybinding |
