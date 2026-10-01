@@ -16,14 +16,14 @@
             "name": "Run & Debug (Makefile)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/invoker_game",
+            "program": "${workspaceFolder}/build/desktop/invoker_game_debug",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
-            "preLaunchTask": "make build",
+            "preLaunchTask": "make debug",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
@@ -37,6 +37,5 @@
                 }
             ]
         }
-
     ]
 }

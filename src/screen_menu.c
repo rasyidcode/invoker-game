@@ -3,7 +3,6 @@
 #include <stdio.h>
 
 #define MAIN_ITEM_COUNT 5
-#define PLAY_ITEM_COUNT 4
 #define HELP_ITEM_COUNT 3
 
 #define MENU_BTN_WIDTH 540
@@ -16,18 +15,11 @@ typedef struct {
 } MenuItem;
 
 static const MenuItem mainMenuItems[MAIN_ITEM_COUNT] = {
-    {"PLAY", "Endless Survival, Time Attack, Practice", "1"},
+    {"PLAY", "Invocation Challenge: 15s Sudden Death", "1"},
     {"HIGH SCORE", "Personal records, best streaks & rank badges", "2"},
     {"SETTINGS", "Audio volume sliders, SFX, voice & options", "3"},
     {"HELP", "Spell Book, recipes & controls guide", "4"},
     {"QUIT GAME", "Exit to desktop", "5"}
-};
-
-static const MenuItem playMenuItems[PLAY_ITEM_COUNT] = {
-    {"ENDLESS", "15s Sudden Death: Miss = Defeat, Correct = +2.5s", "1"},
-    {"TIME ATTACK", "60-second speed test: APM & combo accuracy", "2"},
-    {"PRACTICE MODE", "Untimed sandbox & spell reaction training", "3"},
-    {"< BACK TO MAIN MENU", "Return to main menu", "4"}
 };
 
 static const MenuItem helpMenuItems[HELP_ITEM_COUNT] = {
@@ -180,77 +172,54 @@ static void DrawHighScoresView(const GameContext *ctx) {
     DrawText("HALL OF INVOCATION", centerX - MeasureText("HALL OF INVOCATION", 26) / 2, 495, 26, GOLD);
     DrawText("Personal Best Records & Dota 2 Rank Medals", centerX - MeasureText("Personal Best Records & Dota 2 Rank Medals", 14) / 2, 530, 14, (Color){150, 155, 170, 255});
 
-    // Endless Mode Card
-    int y1 = 560;
-    int h1 = 145;
+    // Endless Mode Showcase Card
+    int y1 = 565;
+    int h1 = 175;
     DrawRectangle(cardX, y1, cardW, h1, (Color){22, 26, 36, 255});
-    RankInfo endRank = GetDotaRankInfo(ctx->highScores.endlessBestRank);
+    RankInfo endRank = GetDotaRankInfo(ctx->highScores.bestRank);
     DrawRectangleLinesEx((Rectangle){(float)cardX, (float)y1, (float)cardW, (float)h1}, 1.5f, endRank.color);
 
-    DrawText("ENDLESS SURVIVAL", cardX + 20, y1 + 16, 18, (Color){255, 100, 100, 255});
-    DrawText(TextFormat("RANK: %s (%s)", endRank.name, endRank.title), cardX + 20, y1 + 42, 17, endRank.color);
-    DrawText(TextFormat("High Score: %d", ctx->highScores.endlessBestScore), cardX + 20, y1 + 72, 16, GOLD);
-    DrawText(TextFormat("Max Strike / Streak: %d", ctx->highScores.endlessBestStreak), cardX + 20, y1 + 95, 15, (Color){100, 240, 140, 255});
-    DrawText(TextFormat("Spells Invoked: %d", ctx->highScores.endlessBestSpells), cardX + 20, y1 + 117, 15, RAYWHITE);
+    DrawText("PERSONAL BEST", cardX + 24, y1 + 18, 20, (Color){255, 100, 100, 255});
+    DrawText(TextFormat("RANK: %s (%s)", endRank.name, endRank.title), cardX + 24, y1 + 46, 18, endRank.color);
+    DrawText(TextFormat("High Score: %d", ctx->highScores.bestScore), cardX + 24, y1 + 78, 16, GOLD);
+    DrawText(TextFormat("Max Strike / Streak: %d", ctx->highScores.bestStreak), cardX + 24, y1 + 104, 15, (Color){100, 240, 140, 255});
+    DrawText(TextFormat("Spells Invoked: %d", ctx->highScores.bestSpells), cardX + 24, y1 + 128, 15, RAYWHITE);
 
     // Rank Badge Icon on the right
-    Texture2D endTex = GetRankTexture(ctx->assets, ctx->highScores.endlessBestRank);
+    Texture2D endTex = GetRankTexture(ctx->assets, ctx->highScores.bestRank);
     if (endTex.id > 0) {
         Rectangle src = {0.0f, 0.0f, (float)endTex.width, (float)endTex.height};
-        Rectangle dst = {(float)(cardX + cardW - 128), (float)(y1 + 16), 112.0f, 112.0f};
+        Rectangle dst = {(float)(cardX + cardW - 148), (float)(y1 + 18), 136.0f, 136.0f};
         DrawTexturePro(endTex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
     }
 
-    // Time Attack Card
-    int y2 = 720;
-    int h2 = 145;
-    DrawRectangle(cardX, y2, cardW, h2, (Color){22, 26, 36, 255});
-    RankInfo taRank = GetDotaRankInfo(ctx->highScores.timeAttackBestRank);
-    DrawRectangleLinesEx((Rectangle){(float)cardX, (float)y2, (float)cardW, (float)h2}, 1.5f, taRank.color);
-
-    DrawText("TIME ATTACK (60s)", cardX + 20, y2 + 16, 18, (Color){255, 200, 80, 255});
-    DrawText(TextFormat("RANK: %s (%s)", taRank.name, taRank.title), cardX + 20, y2 + 42, 17, taRank.color);
-    DrawText(TextFormat("High Score: %d", ctx->highScores.timeAttackBestScore), cardX + 20, y2 + 72, 16, GOLD);
-    DrawText(TextFormat("Max Strike / Streak: %d", ctx->highScores.timeAttackBestStreak), cardX + 20, y2 + 95, 15, (Color){100, 240, 140, 255});
-    DrawText(TextFormat("Spells Invoked: %d", ctx->highScores.timeAttackBestSpells), cardX + 20, y2 + 117, 15, RAYWHITE);
-
-    // Rank Badge Icon on the right
-    Texture2D taTex = GetRankTexture(ctx->assets, ctx->highScores.timeAttackBestRank);
-    if (taTex.id > 0) {
-        Rectangle src = {0.0f, 0.0f, (float)taTex.width, (float)taTex.height};
-        Rectangle dst = {(float)(cardX + cardW - 128), (float)(y2 + 16), 112.0f, 112.0f};
-        DrawTexturePro(taTex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
-    }
-
     // Rank Ladder Guide
-    int y3 = 880;
-    DrawText("DOTA 2 RANK TIERS (ENDLESS SPELL THRESHOLDS):", cardX, y3, 14, (Color){180, 185, 200, 255});
-    int gridY = y3 + 22;
+    int y3 = 770;
+    DrawText("RANK TIERS:", cardX, y3, 14, (Color){180, 185, 200, 255});
+    int gridY = y3 + 24;
     for (int r = 0; r < DOTA_RANK_COUNT; r++) {
         RankInfo rInfo = GetDotaRankInfo((DotaRank)r);
         int colIdx = r % 4;
         int rowIdx = r / 4;
         int bx = cardX + colIdx * 135;
-        int by = gridY + rowIdx * 42;
-
-        DrawRectangle(bx, by, 128, 36, (Color){16, 18, 24, 255});
-        DrawRectangleLines(bx, by, 128, 36, rInfo.color);
-
+        int by = gridY + rowIdx * 46;
+        DrawRectangle(bx, by, 128, 40, (Color){16, 18, 24, 255});
+        DrawRectangleLines(bx, by, 128, 40, rInfo.color);
         Texture2D ladderTex = GetRankTexture(ctx->assets, (DotaRank)r);
         if (ladderTex.id > 0) {
             Rectangle src = {0.0f, 0.0f, (float)ladderTex.width, (float)ladderTex.height};
-            Rectangle dst = {(float)(bx + 4), (float)(by + 3), 30.0f, 30.0f};
+            Rectangle dst = {(float)(bx + 4), (float)(by + 4), 32.0f, 32.0f};
             DrawTexturePro(ladderTex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
-            DrawText(rInfo.name, bx + 38, by + 5, 12, rInfo.color);
-            DrawText(TextFormat("%d+ Spells", rInfo.minSpells), bx + 38, by + 20, 11, (Color){130, 135, 150, 255});
+            DrawText(rInfo.name, bx + 40, by + 6, 12, rInfo.color);
+            DrawText(TextFormat("%d+ Spells", rInfo.minSpells), bx + 40, by + 22, 11, (Color){130, 135, 150, 255});
         } else {
-            DrawText(rInfo.name, bx + 6, by + 5, 12, rInfo.color);
-            DrawText(TextFormat("%d+ Spells", rInfo.minSpells), bx + 6, by + 20, 11, (Color){130, 135, 150, 255});
+            DrawText(rInfo.name, bx + 6, by + 6, 12, rInfo.color);
+            DrawText(TextFormat("%d+ Spells", rInfo.minSpells), bx + 6, by + 22, 11, (Color){130, 135, 150, 255});
         }
     }
 
     // Back button
-    int btnY = 1000;
+    int btnY = 920;
     Rectangle backRec = {(float)cardX, (float)btnY, (float)cardW, 56};
     DrawRectangleRec(backRec, (Color){30, 35, 48, 255});
     DrawRectangleLinesEx(backRec, 1.5f, GOLD);
@@ -367,7 +336,7 @@ static void DrawControlsView(void) {
     int infoY = 890;
     DrawRectangle(cardX, infoY, cardW, 85, (Color){25, 28, 38, 255});
     DrawRectangleLines(cardX, infoY, cardW, 85, (Color){255, 80, 80, 255});
-    DrawText("ENDLESS MODE RULES:", cardX + 15, infoY + 12, 15, (Color){255, 100, 100, 255});
+    DrawText("CHALLENGE RULES:", cardX + 15, infoY + 12, 15, (Color){255, 100, 100, 255});
     DrawText("- Starts with 15.0 seconds on the clock.", cardX + 15, infoY + 34, 13, (Color){200, 205, 220, 255});
     DrawText("- Each correct spell grants +2.5 seconds (max 25s).", cardX + 15, infoY + 50, 13, (Color){200, 205, 220, 255});
     DrawText("- ANY missed invoke causes IMMEDIATE SUDDEN DEATH!", cardX + 15, infoY + 66, 13, (Color){255, 160, 160, 255});
@@ -455,9 +424,9 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
         if (activate) {
             PlayInvokeSound(ctx->audio);
             switch (ctx->menuSelected) {
-                case 0: // PLAY
-                    ctx->menuPage = MENU_PAGE_PLAY;
-                    ctx->menuSelected = 0;
+                case 0: // PLAY -> Endless Mode directly!
+                    ResetGameplaySession(ctx);
+                    StartTransition(&ctx->transition, SCREEN_GAMEPLAY);
                     break;
                 case 1: // HIGH SCORE
                     ctx->menuPage = MENU_PAGE_HIGHSCORE;
@@ -473,81 +442,6 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
                     break;
                 case 4: // QUIT GAME
                     ctx->shouldExit = true;
-                    break;
-                default: break;
-            }
-        }
-    }
-    // -------------------------------------------------------------
-    // PAGE: PLAY SUBMENU
-    // -------------------------------------------------------------
-    else if (ctx->menuPage == MENU_PAGE_PLAY) {
-        int btnHeight = 82;
-        int btnGap = 16;
-
-        if (IsKeyPressed(KEY_ESCAPE)) {
-            ctx->menuPage = MENU_PAGE_MAIN;
-            ctx->menuSelected = 0;
-            PlayOrbSound(ctx->audio, ORB_QUAS);
-            return;
-        }
-
-        if (mouseMoved) {
-            for (int i = 0; i < PLAY_ITEM_COUNT; i++) {
-                int btnY = MENU_BTN_START_Y + i * (btnHeight + btnGap);
-                Rectangle btnRec = {(float)buttonX, (float)btnY, (float)MENU_BTN_WIDTH, (float)btnHeight};
-                if (CheckCollisionPointRec(mouse, btnRec) && ctx->menuSelected != i) {
-                    ctx->menuSelected = i;
-                    PlayOrbSound(ctx->audio, ORB_WEX);
-                }
-            }
-        }
-
-        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
-            ctx->menuSelected = (ctx->menuSelected - 1 + PLAY_ITEM_COUNT) % PLAY_ITEM_COUNT;
-            PlayOrbSound(ctx->audio, ORB_WEX);
-        }
-        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
-            ctx->menuSelected = (ctx->menuSelected + 1) % PLAY_ITEM_COUNT;
-            PlayOrbSound(ctx->audio, ORB_WEX);
-        }
-
-        if (IsKeyPressed(KEY_ONE))   ctx->menuSelected = 0;
-        if (IsKeyPressed(KEY_TWO))   ctx->menuSelected = 1;
-        if (IsKeyPressed(KEY_THREE)) ctx->menuSelected = 2;
-        if (IsKeyPressed(KEY_FOUR))  ctx->menuSelected = 3;
-
-        bool activate = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE);
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            for (int i = 0; i < PLAY_ITEM_COUNT; i++) {
-                int btnY = MENU_BTN_START_Y + i * (btnHeight + btnGap);
-                Rectangle btnRec = {(float)buttonX, (float)btnY, (float)MENU_BTN_WIDTH, (float)btnHeight};
-                if (CheckCollisionPointRec(mouse, btnRec)) {
-                    ctx->menuSelected = i;
-                    activate = true;
-                    break;
-                }
-            }
-        }
-
-        if (activate) {
-            PlayInvokeSound(ctx->audio);
-            switch (ctx->menuSelected) {
-                case 0: // Endless Survival
-                    ResetGameplaySession(ctx, GAME_MODE_ENDLESS);
-                    StartTransition(&ctx->transition, SCREEN_ENDLESS);
-                    break;
-                case 1: // Time Attack
-                    ResetGameplaySession(ctx, GAME_MODE_TIME_ATTACK);
-                    StartTransition(&ctx->transition, SCREEN_TIME_ATTACK);
-                    break;
-                case 2: // Practice Mode
-                    ResetGameplaySession(ctx, GAME_MODE_PRACTICE);
-                    StartTransition(&ctx->transition, SCREEN_PRACTICE);
-                    break;
-                case 3: // Back
-                    ctx->menuPage = MENU_PAGE_MAIN;
-                    ctx->menuSelected = 0;
                     break;
                 default: break;
             }
@@ -625,7 +519,7 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
     // PAGE: HIGH SCORES / SETTINGS / CONTROLS (Back on ESC or Button)
     // -------------------------------------------------------------
     else if (ctx->menuPage == MENU_PAGE_HIGHSCORE) {
-        Rectangle backRec = {(float)buttonX, 1000.0f, (float)MENU_BTN_WIDTH, 56.0f};
+        Rectangle backRec = {(float)buttonX, 920.0f, (float)MENU_BTN_WIDTH, 56.0f};
         if (IsKeyPressed(KEY_ESCAPE) || (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, backRec))) {
             ctx->menuPage = MENU_PAGE_MAIN;
             ctx->menuSelected = 1;
@@ -709,9 +603,6 @@ void DrawMenuScreen(GameContext *ctx, Vector2 mouse) {
     switch (ctx->menuPage) {
         case MENU_PAGE_MAIN:
             DrawMenuButtons(MAIN_ITEM_COUNT, mainMenuItems, ctx->menuSelected, MENU_BTN_START_Y, 74, 14);
-            break;
-        case MENU_PAGE_PLAY:
-            DrawMenuButtons(PLAY_ITEM_COUNT, playMenuItems, ctx->menuSelected, MENU_BTN_START_Y, 82, 16);
             break;
         case MENU_PAGE_HELP:
             DrawMenuButtons(HELP_ITEM_COUNT, helpMenuItems, ctx->menuSelected, MENU_BTN_START_Y, 86, 18);

@@ -32,18 +32,18 @@ The project is developed in **C (C99)** using the **Raylib** library for graphic
 
 ### 2.4 The 10 Spells Reference Table
 
-| Spell Name | Recipe | Quas | Wex | Exort | Default Key | Description |
-| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Cold Snap** | Q Q Q | 3 | 0 | 0 | `Y` / `D` | Freezes target repeatedly when taking damage. |
-| **Ghost Walk** | Q Q W | 2 | 1 | 0 | `V` / `D` | Enters stealth, slowing nearby enemies. |
-| **Ice Wall** | Q Q E | 2 | 0 | 1 | `G` / `D` | Generates a wall of ice that heavily slows enemies. |
-| **EMP** | W W W | 0 | 3 | 0 | `C` / `D` | Charges an electromagnetic pulse burning mana. |
-| **Tornado** | W W Q | 1 | 2 | 0 | `X` / `D` | Launches a vortex lifting enemies into the air. |
-| **Alacrity** | W W E | 0 | 2 | 1 | `Z` / `D` | Grants massive attack speed and bonus damage. |
-| **Sun Strike** | E E E | 0 | 0 | 3 | `T` / `D` | Global delayed beam of devastating pure fire. |
-| **Forge Spirit** | E E Q | 1 | 0 | 2 | `F` / `D` | Summons an elemental spirit to fight alongside. |
-| **Chaos Meteor** | E E W | 0 | 1 | 2 | `D` / `D` | Calls down a flaming meteor rolling forward. |
-| **Deafening Blast**| Q W E | 1 | 1 | 1 | `B` / `D` | Sonic wave knocking back, damaging, and disarming. |
+| Spell Name | Recipe | Quas | Wex | Exort | Description |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **Cold Snap** | Q Q Q | 3 | 0 | 0 | Freezes target repeatedly when taking damage. |
+| **Ghost Walk** | Q Q W | 2 | 1 | 0 | Enters stealth, slowing nearby enemies. |
+| **Ice Wall** | Q Q E | 2 | 0 | 1 | Generates a wall of ice that heavily slows enemies. |
+| **EMP** | W W W | 0 | 3 | 0 | Charges an electromagnetic pulse burning mana. |
+| **Tornado** | W W Q | 1 | 2 | 0 | Launches a vortex lifting enemies into the air. |
+| **Alacrity** | W W E | 0 | 2 | 1 | Grants massive attack speed and bonus damage. |
+| **Sun Strike** | E E E | 0 | 0 | 3 | Global delayed beam of devastating pure fire. |
+| **Forge Spirit** | E E Q | 1 | 0 | 2 | Summons an elemental spirit to fight alongside. |
+| **Chaos Meteor** | E E W | 0 | 1 | 2 | Calls down a flaming meteor rolling forward. |
+| **Deafening Blast**| Q W E | 1 | 1 | 1 | Sonic wave knocking back, damaging, and disarming. |
 
 ### 2.5 Invoked Spell Slot Logic (D & F)
 Invoker has two active spell slots: **Slot 1 (Primary, key `D`)** and **Slot 2 (Secondary, key `F`)**.
@@ -57,16 +57,11 @@ When **R (Invoke)** is pressed:
    - Slot 2 is overwritten by the contents of Slot 1.
    - Slot 1 receives $S_{new}$.
 
-### 2.6 Sister Projects & Extended Mechanics
-To maintain high velocity and zero friction, extended gameplay styles have been partitioned into dedicated standalone repositories:
-- **[Invoker: Arcane Surge](../invoker-surge)**: Arcade momentum game featuring dynamic fever bars, decay pressure, and frenzy spell-cycling.
-- **[Invoker: Match Simulator](../invoker-sim)**: Tactical Dota 2 sandbox featuring authentic mana pool budgeting, per-spell cooldown rotations, and combo trials.
-
 ---
 
 ## 3. Game Modes
 
-### Mode 1: Endless Survival (Sudden Death) - Flagship High-Stakes Mode
+### Endless Survival (Sudden Death) - Core Game Mode
 - Starts with a **15.0-second countdown**.
 - Every correct spell invocation adds a **+2.5s time bonus** (capped at 25.0s maximum bank to maintain relentless urgency).
 - **Sudden Death Penalty**: Any missed invoke (wrong multiset combination or attempting to invoke with fewer than 3 orbs) results in **IMMEDIATE DEFEAT**!
@@ -80,19 +75,6 @@ To maintain high velocity and zero friction, extended gameplay styles have been 
   - **Ancient**: 30 - 39 spells
   - **Divine**: 40 - 49 spells
   - **Immortal**: 50+ spells
-
-### Mode 2: Speed Trainer / Time Attack
-- Standard fixed **60-second speed test**.
-- High combo multiplier on streaks without sudden-death elimination.
-- Targets APM (actions per minute) and sustained invocation consistency.
-
-### Mode 3: Free Practice / Sandbox
-- Untimed sandbox with zero fail conditions.
-- Real-time display of current orbs, slot shifting, action logging, and audition cues (`D` and `F`).
-
-### Mode 4: Interactive Spell Book & Guide
-- Complete 10-spell catalog with animated elemental badges and click-to-audition Dota 2 sound effects.
-- Controls & reagent guides for novice and advanced players.
 
 ---
 
@@ -124,7 +106,7 @@ invoker-game/
     ├── main.c           # Program entry point, main loop, init/shutdown
     ├── orb.c            # FIFO buffer operations, orb inputs
     ├── screen.c         # Screen state machine and transition handling
-    ├── screen_gameplay.c# Gameplay screen (Practice & Time Attack)
+    ├── screen_gameplay.c# Gameplay screen (Endless Survival)
     ├── screen_logo.c    # Animated Raylib splash screen
     ├── screen_menu.c    # Main menu screen
     ├── screen_settings.c# Settings screen (audio sliders, gameplay toggles)
@@ -185,8 +167,6 @@ typedef struct {
 typedef enum {
     SCREEN_LOGO = 0,
     SCREEN_MENU,
-    SCREEN_PRACTICE,
-    SCREEN_TIME_ATTACK,
     SCREEN_ENDLESS,
     SCREEN_SPELLBOOK,
     SCREEN_GAME_OVER
@@ -300,11 +280,6 @@ typedef struct {
     int endlessBestStreak;
     int endlessBestSpells;
     DotaRank endlessBestRank;
-
-    int timeAttackBestScore;
-    int timeAttackBestStreak;
-    int timeAttackBestSpells;
-    DotaRank timeAttackBestRank;
 } HighScoreData;
 ```
 - **Persistence**: Saved to/loaded from `settings.dat` and `scores.dat` via binary `fwrite`/`fread`. Falls back to defaults if files are absent.
