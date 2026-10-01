@@ -76,6 +76,7 @@ static void PushOrbWithAnim(OrbBuffer *buffer, OrbAnimState *anim, OrbType orb) 
 }
 
 static void DrawTitle(GameplayMode mode, float timer) {
+    (void)mode;
     int centerX = VIRTUAL_WIDTH / 2;
 
     const int gameTitleFs = 38;

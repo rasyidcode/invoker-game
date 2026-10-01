@@ -3,7 +3,6 @@
 #include <stdio.h>
 
 #define MAIN_ITEM_COUNT 5
-#define PLAY_ITEM_COUNT 4
 #define HELP_ITEM_COUNT 3
 
 #define MENU_BTN_WIDTH 540
@@ -16,18 +15,11 @@ typedef struct {
 } MenuItem;
 
 static const MenuItem mainMenuItems[MAIN_ITEM_COUNT] = {
-    {"PLAY", "Endless Survival, Time Attack, Practice", "1"},
+    {"PLAY", "Endless Survival: 15s Sudden Death", "1"},
     {"HIGH SCORE", "Personal records, best streaks & rank badges", "2"},
     {"SETTINGS", "Audio volume sliders, SFX, voice & options", "3"},
     {"HELP", "Spell Book, recipes & controls guide", "4"},
     {"QUIT GAME", "Exit to desktop", "5"}
-};
-
-static const MenuItem playMenuItems[PLAY_ITEM_COUNT] = {
-    {"ENDLESS", "15s Sudden Death: Miss = Defeat, Correct = +2.5s", "1"},
-    {"TIME ATTACK", "60-second speed test: APM & combo accuracy", "2"},
-    {"PRACTICE MODE", "Untimed sandbox & spell reaction training", "3"},
-    {"< BACK TO MAIN MENU", "Return to main menu", "4"}
 };
 
 static const MenuItem helpMenuItems[HELP_ITEM_COUNT] = {
@@ -455,9 +447,9 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
         if (activate) {
             PlayInvokeSound(ctx->audio);
             switch (ctx->menuSelected) {
-                case 0: // PLAY
-                    ctx->menuPage = MENU_PAGE_PLAY;
-                    ctx->menuSelected = 0;
+                case 0: // PLAY -> Endless Mode directly!
+                    ResetGameplaySession(ctx, GAME_MODE_ENDLESS);
+                    StartTransition(&ctx->transition, SCREEN_ENDLESS);
                     break;
                 case 1: // HIGH SCORE
                     ctx->menuPage = MENU_PAGE_HIGHSCORE;
@@ -473,81 +465,6 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
                     break;
                 case 4: // QUIT GAME
                     ctx->shouldExit = true;
-                    break;
-                default: break;
-            }
-        }
-    }
-    // -------------------------------------------------------------
-    // PAGE: PLAY SUBMENU
-    // -------------------------------------------------------------
-    else if (ctx->menuPage == MENU_PAGE_PLAY) {
-        int btnHeight = 82;
-        int btnGap = 16;
-
-        if (IsKeyPressed(KEY_ESCAPE)) {
-            ctx->menuPage = MENU_PAGE_MAIN;
-            ctx->menuSelected = 0;
-            PlayOrbSound(ctx->audio, ORB_QUAS);
-            return;
-        }
-
-        if (mouseMoved) {
-            for (int i = 0; i < PLAY_ITEM_COUNT; i++) {
-                int btnY = MENU_BTN_START_Y + i * (btnHeight + btnGap);
-                Rectangle btnRec = {(float)buttonX, (float)btnY, (float)MENU_BTN_WIDTH, (float)btnHeight};
-                if (CheckCollisionPointRec(mouse, btnRec) && ctx->menuSelected != i) {
-                    ctx->menuSelected = i;
-                    PlayOrbSound(ctx->audio, ORB_WEX);
-                }
-            }
-        }
-
-        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
-            ctx->menuSelected = (ctx->menuSelected - 1 + PLAY_ITEM_COUNT) % PLAY_ITEM_COUNT;
-            PlayOrbSound(ctx->audio, ORB_WEX);
-        }
-        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
-            ctx->menuSelected = (ctx->menuSelected + 1) % PLAY_ITEM_COUNT;
-            PlayOrbSound(ctx->audio, ORB_WEX);
-        }
-
-        if (IsKeyPressed(KEY_ONE))   ctx->menuSelected = 0;
-        if (IsKeyPressed(KEY_TWO))   ctx->menuSelected = 1;
-        if (IsKeyPressed(KEY_THREE)) ctx->menuSelected = 2;
-        if (IsKeyPressed(KEY_FOUR))  ctx->menuSelected = 3;
-
-        bool activate = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE);
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            for (int i = 0; i < PLAY_ITEM_COUNT; i++) {
-                int btnY = MENU_BTN_START_Y + i * (btnHeight + btnGap);
-                Rectangle btnRec = {(float)buttonX, (float)btnY, (float)MENU_BTN_WIDTH, (float)btnHeight};
-                if (CheckCollisionPointRec(mouse, btnRec)) {
-                    ctx->menuSelected = i;
-                    activate = true;
-                    break;
-                }
-            }
-        }
-
-        if (activate) {
-            PlayInvokeSound(ctx->audio);
-            switch (ctx->menuSelected) {
-                case 0: // Endless Survival
-                    ResetGameplaySession(ctx, GAME_MODE_ENDLESS);
-                    StartTransition(&ctx->transition, SCREEN_ENDLESS);
-                    break;
-                case 1: // Time Attack
-                    ResetGameplaySession(ctx, GAME_MODE_TIME_ATTACK);
-                    StartTransition(&ctx->transition, SCREEN_TIME_ATTACK);
-                    break;
-                case 2: // Practice Mode
-                    ResetGameplaySession(ctx, GAME_MODE_PRACTICE);
-                    StartTransition(&ctx->transition, SCREEN_PRACTICE);
-                    break;
-                case 3: // Back
-                    ctx->menuPage = MENU_PAGE_MAIN;
-                    ctx->menuSelected = 0;
                     break;
                 default: break;
             }
@@ -709,9 +626,6 @@ void DrawMenuScreen(GameContext *ctx, Vector2 mouse) {
     switch (ctx->menuPage) {
         case MENU_PAGE_MAIN:
             DrawMenuButtons(MAIN_ITEM_COUNT, mainMenuItems, ctx->menuSelected, MENU_BTN_START_Y, 74, 14);
-            break;
-        case MENU_PAGE_PLAY:
-            DrawMenuButtons(PLAY_ITEM_COUNT, playMenuItems, ctx->menuSelected, MENU_BTN_START_Y, 82, 16);
             break;
         case MENU_PAGE_HELP:
             DrawMenuButtons(HELP_ITEM_COUNT, helpMenuItems, ctx->menuSelected, MENU_BTN_START_Y, 86, 18);
