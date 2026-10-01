@@ -213,7 +213,7 @@ static void DrawOrbs(const OrbBuffer *buffer, const GameAssets *assets, const Or
         float posX = (float)(centerX + (i - 1) * orbSpacing);
         bool hasOrb = (buffer->orbs[i] != ORB_NONE);
 
-        float bobOffset = hasOrb ? sinf(time * 3.5f + (float)i * 2.0f) * 6.0f : 0.0f;
+        float bobOffset = sinf(time * 3.5f + (float)i * 2.0f) * 6.0f;
         float currentY = (float)baseY + bobOffset;
 
         float currentScale = anim ? anim->scale[i] : 1.0f;
@@ -243,9 +243,14 @@ static void DrawOrbs(const OrbBuffer *buffer, const GameAssets *assets, const Or
                 DrawCircle((int)posX, (int)currentY, currentRadius, baseColor);
             }
         } else {
-            DrawCircle((int)posX, (int)currentY, baseRadius, (Color){20, 22, 28, 255});
-            DrawCircleLines((int)posX, (int)currentY, baseRadius, (Color){50, 55, 68, 255});
-            DrawCircleLines((int)posX, (int)currentY, baseRadius * 0.55f, (Color){35, 38, 48, 255});
+            DrawCircle((int)posX, (int)currentY, baseRadius, (Color){18, 20, 26, 255});
+            DrawCircleLines((int)posX, (int)currentY, baseRadius, (Color){45, 50, 65, 255});
+            DrawCircleLines((int)posX, (int)currentY, baseRadius - 4.0f, (Color){28, 32, 42, 255});
+
+            const char *glyph = "?";
+            int fs = 36;
+            int gw = MeasureText(glyph, fs);
+            DrawText(glyph, (int)posX - gw / 2, (int)currentY - fs / 2, fs, (Color){60, 66, 85, 255});
         }
     }
 }
