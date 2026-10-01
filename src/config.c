@@ -14,7 +14,6 @@ void InitDefaultSettings(GameSettings *settings) {
     settings->sfxMuted = false;
     settings->voiceMuted = false;
     settings->musicMuted = false;
-    settings->roundDuration = 60;
     settings->showRecipeHelper = true;
     settings->showActionFeed = true;
     settings->fullscreen = false;
@@ -43,8 +42,7 @@ void SaveSettings(const GameSettings *settings) {
 void InitDefaultHighScores(HighScoreData *scores) {
     if (!scores) return;
     memset(scores, 0, sizeof(HighScoreData));
-    scores->endlessBestRank = DOTA_RANK_HERALD;
-    scores->timeAttackBestRank = DOTA_RANK_HERALD;
+    scores->bestRank = DOTA_RANK_HERALD;
 }
 
 void LoadHighScores(HighScoreData *scores) {
@@ -67,16 +65,15 @@ void SaveHighScores(const HighScoreData *scores) {
     }
 }
 
-bool UpdateHighScores(HighScoreData *scores, GameplayMode mode, int score, int streak, int spells, DotaRank rank) {
+bool UpdateHighScores(HighScoreData *scores, int score, int streak, int spells, DotaRank rank) {
     if (!scores) return false;
-    (void)mode;
     bool isNewRecord = false;
 
-    if (score > scores->endlessBestScore) {
-        scores->endlessBestScore = score;
-        scores->endlessBestStreak = streak;
-        scores->endlessBestSpells = spells;
-        scores->endlessBestRank = rank;
+    if (score > scores->bestScore) {
+        scores->bestScore = score;
+        scores->bestStreak = streak;
+        scores->bestSpells = spells;
+        scores->bestRank = rank;
         isNewRecord = true;
         SaveHighScores(scores);
     }
@@ -102,9 +99,7 @@ RankInfo GetDotaRankInfo(DotaRank rank) {
     return rankTable[rank];
 }
 
-DotaRank CalculateDotaRank(GameplayMode mode, int correctSpells) {
-    (void)mode;
-
+DotaRank CalculateDotaRank(int correctSpells) {
     if (correctSpells >= 50) return DOTA_RANK_IMMORTAL;
     if (correctSpells >= 40) return DOTA_RANK_DIVINE;
     if (correctSpells >= 30) return DOTA_RANK_ANCIENT;

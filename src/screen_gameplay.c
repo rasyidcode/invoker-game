@@ -2,7 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 
-void ResetGameplaySession(GameContext *ctx, GameplayMode mode) {
+void ResetGameplaySession(GameContext *ctx) {
     if (!ctx) return;
 
     InitOrbBuffer(&ctx->orbBuffer);
@@ -16,10 +16,8 @@ void ResetGameplaySession(GameContext *ctx, GameplayMode mode) {
     ctx->totalCorrect = 0;
     ctx->timeElapsed = 0.0f;
 
-    ctx->gameMode = mode;
     ctx->gameOver = (GameOverModal){0};
 
-    (void)mode;
     ctx->isTimedMode = true;
     ctx->roundTimer = 15.0f;
     ctx->maxRoundTimer = 15.0f;
@@ -37,7 +35,6 @@ void ResetGameplaySession(GameContext *ctx, GameplayMode mode) {
 
 static void TriggerGameOver(GameContext *ctx, bool defeatedByMiss) {
     ctx->gameOver.active = true;
-    ctx->gameOver.mode = ctx->gameMode;
     ctx->gameOver.score = ctx->score;
     ctx->gameOver.totalSpells = ctx->totalCorrect;
     ctx->gameOver.streak = ctx->streak;
@@ -47,10 +44,12 @@ static void TriggerGameOver(GameContext *ctx, bool defeatedByMiss) {
     ctx->gameOver.defeatedByMiss = defeatedByMiss;
     ctx->gameOver.selectedButton = 0; // default to Try Again
 
-    ctx->gameOver.rank = CalculateDotaRank(ctx->gameMode, ctx->totalCorrect);
-    ctx->gameOver.isNewRecord = UpdateHighScores(&ctx->highScores, ctx->gameMode,
-                                                 ctx->score, ctx->highestStreak,
-                                                 ctx->totalCorrect, ctx->gameOver.rank);
+    ctx->gameOver.rank = CalculateDotaRank(ctx->totalCorrect);
+    ctx->gameOver.isNewRecord = UpdateHighScores(&ctx->highScores,
+                                                 ctx->score,
+                                                 ctx->highestStreak,
+                                                 ctx->totalCorrect,
+                                                 ctx->gameOver.rank);
 
     if (ctx->gameOver.rank >= DOTA_RANK_DIVINE) {
         PlayVoiceEvent(ctx->audio, VOICE_VICTORY);
@@ -75,12 +74,11 @@ static void PushOrbWithAnim(OrbBuffer *buffer, OrbAnimState *anim, OrbType orb) 
     anim->flashAlpha[2] = 1.0f; // bright flash for newest orb on the right
 }
 
-static void DrawTitle(GameplayMode mode, float timer) {
-    (void)mode;
+static void DrawTitle(float timer) {
     int centerX = VIRTUAL_WIDTH / 2;
 
     const int gameTitleFs = 38;
-    const char *gameTitle = "ENDLESS SURVIVAL";
+    const char *gameTitle = "INVOCATION CHALLENGE";
     Color titleColor = (Color){255, 80, 80, 255};
 
     const int gameTitleW = MeasureText(gameTitle, gameTitleFs);
@@ -378,7 +376,7 @@ static void DrawGameOverModal(const GameContext *ctx, Vector2 mouse) {
     int headW = MeasureText(header, headFs);
     DrawText(header, centerX - headW / 2, modalY + 32, headFs, headerCol);
 
-    const char *subMode = "ENDLESS SURVIVAL RESULTS";
+    const char *subMode = "INVOCATION RESULTS";
     int subFs = 15;
     int subW = MeasureText(subMode, subFs);
     DrawText(subMode, centerX - subW / 2, modalY + 74, subFs, (Color){160, 165, 180, 255});
@@ -532,7 +530,7 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
             if (choice == 0) {
                 // Restart mode
                 PlayInvokeSound(ctx->audio);
-                ResetGameplaySession(ctx, ctx->gameMode);
+                ResetGameplaySession(ctx);
             } else {
                 // Return to Main Menu
                 PlayOrbSound(ctx->audio, ORB_QUAS);
@@ -738,7 +736,7 @@ void DrawGameplayScreen(GameContext *ctx, Vector2 mouse) {
 
     int centerX = VIRTUAL_WIDTH / 2;
 
-    DrawTitle(ctx->gameMode, ctx->roundTimer);
+    DrawTitle(ctx->roundTimer);
     DrawScoreBar(ctx->score, ctx->streak);
     DrawTargetSpellCard(ctx->targetSpell, &ctx->feedback, ctx->assets);
 

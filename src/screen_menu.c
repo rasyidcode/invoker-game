@@ -15,7 +15,7 @@ typedef struct {
 } MenuItem;
 
 static const MenuItem mainMenuItems[MAIN_ITEM_COUNT] = {
-    {"PLAY", "Endless Survival: 15s Sudden Death", "1"},
+    {"PLAY", "Invocation Challenge: 15s Sudden Death", "1"},
     {"HIGH SCORE", "Personal records, best streaks & rank badges", "2"},
     {"SETTINGS", "Audio volume sliders, SFX, voice & options", "3"},
     {"HELP", "Spell Book, recipes & controls guide", "4"},
@@ -176,23 +176,17 @@ static void DrawHighScoresView(const GameContext *ctx) {
     int y1 = 565;
     int h1 = 175;
     DrawRectangle(cardX, y1, cardW, h1, (Color){22, 26, 36, 255});
-    RankInfo endRank = GetDotaRankInfo(ctx->highScores.endlessBestRank);
+    RankInfo endRank = GetDotaRankInfo(ctx->highScores.bestRank);
     DrawRectangleLinesEx((Rectangle){(float)cardX, (float)y1, (float)cardW, (float)h1}, 1.5f, endRank.color);
 
-    // DrawText("ENDLESS SURVIVAL", cardX + 20, y1 + 16, 18, (Color){255, 100, 100, 255});
-    // DrawText(TextFormat("RANK: %s (%s)", endRank.name, endRank.title), cardX + 20, y1 + 42, 17, endRank.color);
-    // DrawText(TextFormat("High Score: %d", ctx->highScores.endlessBestScore), cardX + 20, y1 + 72, 16, GOLD);
-    // DrawText(TextFormat("Max Strike / Streak: %d", ctx->highScores.endlessBestStreak), cardX + 20, y1 + 95, 15, (Color){100, 240, 140, 255});
-    // DrawText(TextFormat("Spells Invoked: %d", ctx->highScores.endlessBestSpells), cardX + 20, y1 + 117, 15, RAYWHITE);
-
-    DrawText("ENDLESS SURVIVAL", cardX + 24, y1 + 18, 20, (Color){255, 100, 100, 255});
+    DrawText("PERSONAL BEST", cardX + 24, y1 + 18, 20, (Color){255, 100, 100, 255});
     DrawText(TextFormat("RANK: %s (%s)", endRank.name, endRank.title), cardX + 24, y1 + 46, 18, endRank.color);
-    DrawText(TextFormat("High Score: %d", ctx->highScores.endlessBestScore), cardX + 24, y1 + 78, 16, GOLD);
-    DrawText(TextFormat("Max Strike / Streak: %d", ctx->highScores.endlessBestStreak), cardX + 24, y1 + 104, 15, (Color){100, 240, 140, 255});
-    DrawText(TextFormat("Spells Invoked: %d", ctx->highScores.endlessBestSpells), cardX + 24, y1 + 128, 15, RAYWHITE);
+    DrawText(TextFormat("High Score: %d", ctx->highScores.bestScore), cardX + 24, y1 + 78, 16, GOLD);
+    DrawText(TextFormat("Max Strike / Streak: %d", ctx->highScores.bestStreak), cardX + 24, y1 + 104, 15, (Color){100, 240, 140, 255});
+    DrawText(TextFormat("Spells Invoked: %d", ctx->highScores.bestSpells), cardX + 24, y1 + 128, 15, RAYWHITE);
 
     // Rank Badge Icon on the right
-    Texture2D endTex = GetRankTexture(ctx->assets, ctx->highScores.endlessBestRank);
+    Texture2D endTex = GetRankTexture(ctx->assets, ctx->highScores.bestRank);
     if (endTex.id > 0) {
         Rectangle src = {0.0f, 0.0f, (float)endTex.width, (float)endTex.height};
         Rectangle dst = {(float)(cardX + cardW - 148), (float)(y1 + 18), 136.0f, 136.0f};
@@ -200,34 +194,32 @@ static void DrawHighScoresView(const GameContext *ctx) {
     }
 
     // Rank Ladder Guide
-    int y3 = 880;
-    DrawText("DOTA 2 RANK TIERS (ENDLESS SPELL THRESHOLDS):", cardX, y3, 14, (Color){180, 185, 200, 255});
-    int gridY = y3 + 22;
+    int y3 = 770;
+    DrawText("RANK TIERS:", cardX, y3, 14, (Color){180, 185, 200, 255});
+    int gridY = y3 + 24;
     for (int r = 0; r < DOTA_RANK_COUNT; r++) {
         RankInfo rInfo = GetDotaRankInfo((DotaRank)r);
         int colIdx = r % 4;
         int rowIdx = r / 4;
         int bx = cardX + colIdx * 135;
-        int by = gridY + rowIdx * 42;
-
-        DrawRectangle(bx, by, 128, 36, (Color){16, 18, 24, 255});
-        DrawRectangleLines(bx, by, 128, 36, rInfo.color);
-
+        int by = gridY + rowIdx * 46;
+        DrawRectangle(bx, by, 128, 40, (Color){16, 18, 24, 255});
+        DrawRectangleLines(bx, by, 128, 40, rInfo.color);
         Texture2D ladderTex = GetRankTexture(ctx->assets, (DotaRank)r);
         if (ladderTex.id > 0) {
             Rectangle src = {0.0f, 0.0f, (float)ladderTex.width, (float)ladderTex.height};
-            Rectangle dst = {(float)(bx + 4), (float)(by + 3), 30.0f, 30.0f};
+            Rectangle dst = {(float)(bx + 4), (float)(by + 4), 32.0f, 32.0f};
             DrawTexturePro(ladderTex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
-            DrawText(rInfo.name, bx + 38, by + 5, 12, rInfo.color);
-            DrawText(TextFormat("%d+ Spells", rInfo.minSpells), bx + 38, by + 20, 11, (Color){130, 135, 150, 255});
+            DrawText(rInfo.name, bx + 40, by + 6, 12, rInfo.color);
+            DrawText(TextFormat("%d+ Spells", rInfo.minSpells), bx + 40, by + 22, 11, (Color){130, 135, 150, 255});
         } else {
-            DrawText(rInfo.name, bx + 6, by + 5, 12, rInfo.color);
-            DrawText(TextFormat("%d+ Spells", rInfo.minSpells), bx + 6, by + 20, 11, (Color){130, 135, 150, 255});
+            DrawText(rInfo.name, bx + 6, by + 6, 12, rInfo.color);
+            DrawText(TextFormat("%d+ Spells", rInfo.minSpells), bx + 6, by + 22, 11, (Color){130, 135, 150, 255});
         }
     }
 
     // Back button
-    int btnY = 1000;
+    int btnY = 920;
     Rectangle backRec = {(float)cardX, (float)btnY, (float)cardW, 56};
     DrawRectangleRec(backRec, (Color){30, 35, 48, 255});
     DrawRectangleLinesEx(backRec, 1.5f, GOLD);
@@ -344,7 +336,7 @@ static void DrawControlsView(void) {
     int infoY = 890;
     DrawRectangle(cardX, infoY, cardW, 85, (Color){25, 28, 38, 255});
     DrawRectangleLines(cardX, infoY, cardW, 85, (Color){255, 80, 80, 255});
-    DrawText("ENDLESS MODE RULES:", cardX + 15, infoY + 12, 15, (Color){255, 100, 100, 255});
+    DrawText("CHALLENGE RULES:", cardX + 15, infoY + 12, 15, (Color){255, 100, 100, 255});
     DrawText("- Starts with 15.0 seconds on the clock.", cardX + 15, infoY + 34, 13, (Color){200, 205, 220, 255});
     DrawText("- Each correct spell grants +2.5 seconds (max 25s).", cardX + 15, infoY + 50, 13, (Color){200, 205, 220, 255});
     DrawText("- ANY missed invoke causes IMMEDIATE SUDDEN DEATH!", cardX + 15, infoY + 66, 13, (Color){255, 160, 160, 255});
@@ -433,8 +425,8 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
             PlayInvokeSound(ctx->audio);
             switch (ctx->menuSelected) {
                 case 0: // PLAY -> Endless Mode directly!
-                    ResetGameplaySession(ctx, GAME_MODE_ENDLESS);
-                    StartTransition(&ctx->transition, SCREEN_ENDLESS);
+                    ResetGameplaySession(ctx);
+                    StartTransition(&ctx->transition, SCREEN_GAMEPLAY);
                     break;
                 case 1: // HIGH SCORE
                     ctx->menuPage = MENU_PAGE_HIGHSCORE;
@@ -527,7 +519,7 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
     // PAGE: HIGH SCORES / SETTINGS / CONTROLS (Back on ESC or Button)
     // -------------------------------------------------------------
     else if (ctx->menuPage == MENU_PAGE_HIGHSCORE) {
-        Rectangle backRec = {(float)buttonX, 1000.0f, (float)MENU_BTN_WIDTH, 56.0f};
+        Rectangle backRec = {(float)buttonX, 920.0f, (float)MENU_BTN_WIDTH, 56.0f};
         if (IsKeyPressed(KEY_ESCAPE) || (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, backRec))) {
             ctx->menuPage = MENU_PAGE_MAIN;
             ctx->menuSelected = 1;

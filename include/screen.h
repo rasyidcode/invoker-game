@@ -17,7 +17,7 @@
 typedef enum {
     SCREEN_LOGO = 0,
     SCREEN_MENU,
-    SCREEN_ENDLESS,
+    SCREEN_GAMEPLAY,
     SCREEN_SPELLBOOK,
     SCREEN_GAME_OVER
 } GameScreen;
@@ -58,7 +58,6 @@ typedef struct {
 
 typedef struct {
     bool active;
-    GameplayMode mode;
     int score;
     int totalSpells;
     int streak;
@@ -82,7 +81,6 @@ typedef struct {
     HighScoreData highScores;
 
     // Gameplay state
-    GameplayMode gameMode;
     OrbBuffer orbBuffer;
     SpellSlots spellSlots;
     ActionLog actionLog;
@@ -120,7 +118,7 @@ typedef struct {
 void InitGameContext(GameContext *ctx, const GameAssets *assets, AudioManager *audio);
 
 // Reset gameplay state for new session
-void ResetGameplaySession(GameContext *ctx, GameplayMode mode);
+void ResetGameplaySession(GameContext *ctx);
 
 // Screen transition helpers
 void StartTransition(ScreenTransition *trans, GameScreen to);

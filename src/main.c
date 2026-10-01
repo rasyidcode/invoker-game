@@ -39,7 +39,7 @@ static void UpdateDrawFrame(void) {
             case SCREEN_MENU:
                 UpdateMenuScreen(&gApp.ctx, dt, mouse);
                 break;
-            case SCREEN_ENDLESS:
+            case SCREEN_GAMEPLAY:
                 UpdateGameplayScreen(&gApp.ctx, dt, mouse);
                 break;
             case SCREEN_SPELLBOOK:
@@ -61,7 +61,7 @@ static void UpdateDrawFrame(void) {
             case SCREEN_MENU:
                 DrawMenuScreen(&gApp.ctx, mouse);
                 break;
-            case SCREEN_ENDLESS:
+            case SCREEN_GAMEPLAY:
                 DrawGameplayScreen(&gApp.ctx, mouse);
                 break;
             case SCREEN_SPELLBOOK:
