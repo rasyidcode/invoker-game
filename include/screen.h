@@ -71,6 +71,11 @@ typedef struct {
 } GameOverModal;
 
 typedef struct {
+    bool active;
+    int selectedButton; // 0: CANCEL, 1: QUIT
+} ExitConfirmModal;
+
+typedef struct {
     GameScreen currentScreen;
     bool shouldExit;
 
@@ -106,6 +111,10 @@ typedef struct {
     // Menu selection & state
     MenuPage menuPage;
     int menuSelected;
+
+    // Exit confirmation state
+    float exitHintTimer;
+    ExitConfirmModal exitModal;
 
     // Game Over Popup Modal
     GameOverModal gameOver;
