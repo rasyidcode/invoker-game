@@ -5,9 +5,7 @@
 #include <stdbool.h>
 
 typedef enum {
-    GAME_MODE_PRACTICE = 0,
-    GAME_MODE_TIME_ATTACK,
-    GAME_MODE_ENDLESS
+    GAME_MODE_ENDLESS = 0
 } GameplayMode;
 
 typedef enum {

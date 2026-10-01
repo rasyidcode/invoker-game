@@ -19,19 +19,10 @@ void ResetGameplaySession(GameContext *ctx, GameplayMode mode) {
     ctx->gameMode = mode;
     ctx->gameOver = (GameOverModal){0};
 
-    if (mode == GAME_MODE_ENDLESS) {
-        ctx->isTimedMode = true;
-        ctx->roundTimer = 15.0f;
-        ctx->maxRoundTimer = 15.0f;
-    } else if (mode == GAME_MODE_TIME_ATTACK) {
-        ctx->isTimedMode = true;
-        ctx->roundTimer = 60.0f;
-        ctx->maxRoundTimer = 60.0f;
-    } else {
-        ctx->isTimedMode = false;
-        ctx->roundTimer = 0.0f;
-        ctx->maxRoundTimer = 0.0f;
-    }
+    (void)mode;
+    ctx->isTimedMode = true;
+    ctx->roundTimer = 15.0f;
+    ctx->maxRoundTimer = 15.0f;
 
     ctx->feedback = (QuizFeedback){0};
     for (int i = 0; i < MAX_ACTIVE_ORBS; i++) {
@@ -88,63 +79,33 @@ static void DrawTitle(GameplayMode mode, float timer) {
     int centerX = VIRTUAL_WIDTH / 2;
 
     const int gameTitleFs = 38;
-    const char *gameTitle = "PRACTICE MODE";
-    Color titleColor = RAYWHITE;
-
-    if (mode == GAME_MODE_ENDLESS) {
-        gameTitle = "ENDLESS SURVIVAL";
-        titleColor = (Color){255, 80, 80, 255};
-    } else if (mode == GAME_MODE_TIME_ATTACK) {
-        gameTitle = "TIME ATTACK (60s)";
-        titleColor = (Color){255, 190, 60, 255};
-    }
+    const char *gameTitle = "ENDLESS SURVIVAL";
+    Color titleColor = (Color){255, 80, 80, 255};
 
     const int gameTitleW = MeasureText(gameTitle, gameTitleFs);
     DrawText(gameTitle, centerX - gameTitleW / 2, 60, gameTitleFs, titleColor);
 
-    if (mode == GAME_MODE_ENDLESS) {
-        const char *timeStr = TextFormat("TIME REMAINING: %.1fs", timer);
-        int timeFs = 18;
-        int timeW = MeasureText(timeStr, timeFs);
-        Color timeCol = (timer > 5.0f) ? (Color){100, 240, 140, 255} : (Color){255, 60, 60, 255};
-        DrawText(timeStr, centerX - timeW / 2, 108, timeFs, timeCol);
+    const char *timeStr = TextFormat("TIME REMAINING: %.1fs", timer);
+    int timeFs = 18;
+    int timeW = MeasureText(timeStr, timeFs);
+    Color timeCol = (timer > 5.0f) ? (Color){100, 240, 140, 255} : (Color){255, 60, 60, 255};
+    DrawText(timeStr, centerX - timeW / 2, 108, timeFs, timeCol);
 
-        // Progress bar (scaled against 25s max)
-        int barW = 500;
-        int barH = 6;
-        int barX = centerX - barW / 2;
-        int barY = 134;
-        DrawRectangle(barX, barY, barW, barH, (Color){30, 35, 45, 255});
-        float ratio = timer / 25.0f;
-        if (ratio < 0.0f) ratio = 0.0f;
-        if (ratio > 1.0f) ratio = 1.0f;
-        DrawRectangle(barX, barY, (int)((float)barW * ratio), barH, timeCol);
+    // Progress bar (scaled against 25s max)
+    int barW = 500;
+    int barH = 6;
+    int barX = centerX - barW / 2;
+    int barY = 134;
+    DrawRectangle(barX, barY, barW, barH, (Color){30, 35, 45, 255});
 
-        const char *warn = "SUDDEN DEATH: Miss = Defeat | Correct = +2.5s";
-        int warnW = MeasureText(warn, 13);
-        DrawText(warn, centerX - warnW / 2, 146, 13, (Color){255, 150, 150, 255});
-    } else if (mode == GAME_MODE_TIME_ATTACK) {
-        const char *timeStr = TextFormat("TIME REMAINING: %.1fs", timer);
-        int timeFs = 18;
-        int timeW = MeasureText(timeStr, timeFs);
-        Color timeCol = (timer > 15.0f) ? (Color){100, 240, 140, 255} : (Color){255, 80, 80, 255};
-        DrawText(timeStr, centerX - timeW / 2, 108, timeFs, timeCol);
+    float ratio = timer / 25.0f;
+    if (ratio < 0.0f) ratio = 0.0f;
+    if (ratio > 1.0f) ratio = 1.0f;
+    DrawRectangle(barX, barY, (int)((float)barW * ratio), barH, timeCol);
 
-        // Progress bar (60s)
-        int barW = 500;
-        int barH = 6;
-        int barX = centerX - barW / 2;
-        int barY = 134;
-        DrawRectangle(barX, barY, barW, barH, (Color){30, 35, 45, 255});
-        float ratio = timer / 60.0f;
-        if (ratio < 0.0f) ratio = 0.0f;
-        DrawRectangle(barX, barY, (int)((float)barW * ratio), barH, timeCol);
-    } else {
-        const int instructionTextFs = 15;
-        const char *instructionText = "Press Q, W, E to fill orbs - Press ESC to return to Menu";
-        const int instructionTextW = MeasureText(instructionText, instructionTextFs);
-        DrawText(instructionText, centerX - instructionTextW / 2, 118, instructionTextFs, (Color){150, 155, 170, 255});
-    }
+    const char *warn = "SUDDEN DEATH: Miss = Defeat | Correct = +2.5s";
+    int warnW = MeasureText(warn, 13);
+    DrawText(warn, centerX - warnW / 2, 146, 13, (Color){255, 150, 150, 255});
 }
 
 static void DrawScoreBar(int score, int streak) {
@@ -409,27 +370,14 @@ static void DrawGameOverModal(const GameContext *ctx, Vector2 mouse) {
     DrawRectangleLinesEx((Rectangle){(float)modalX + 4, (float)modalY + 4, (float)modalW - 8, (float)modalH - 8}, 1.0f, ColorAlpha(GOLD, 0.45f));
 
     // Header Title
-    const char *header = "RUN OVER";
-    Color headerCol = (Color){255, 100, 100, 255};
-
-    if (ctx->gameOver.mode == GAME_MODE_ENDLESS) {
-        if (ctx->gameOver.defeatedByMiss) {
-            header = "SUDDEN DEATH MISS!";
-            headerCol = (Color){255, 60, 60, 255};
-        } else {
-            header = "TIME EXPIRED!";
-            headerCol = (Color){255, 160, 80, 255};
-        }
-    } else {
-        header = "TIME'S UP!";
-        headerCol = (Color){255, 200, 80, 255};
-    }
+    const char *header = ctx->gameOver.defeatedByMiss ? "SUDDEN DEATH MISS!" : "TIME EXPIRED!";
+    Color headerCol = ctx->gameOver.defeatedByMiss ? (Color){255, 60, 60, 255} : (Color){255, 160, 80, 255};
 
     int headFs = 32;
     int headW = MeasureText(header, headFs);
     DrawText(header, centerX - headW / 2, modalY + 32, headFs, headerCol);
 
-    const char *subMode = (ctx->gameOver.mode == GAME_MODE_ENDLESS) ? "ENDLESS SURVIVAL RESULTS" : "TIME ATTACK RESULTS";
+    const char *subMode = "ENDLESS SURVIVAL RESULTS";
     int subFs = 15;
     int subW = MeasureText(subMode, subFs);
     DrawText(subMode, centerX - subW / 2, modalY + 74, subFs, (Color){160, 165, 180, 255});
@@ -687,24 +635,15 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
 
         if (ctx->orbBuffer.count < MAX_ACTIVE_ORBS) {
             EmitInvokeBurst(&ctx->particles, invokeCenter, (Color){255, 180, 50, 255}, 12);
-            if (ctx->gameMode == GAME_MODE_ENDLESS) {
-                // In Endless, incomplete orbs counts as Miss -> Sudden Death!
-                ctx->totalAttempted++;
-                ctx->feedback.timer = 0.85f;
-                ctx->feedback.maxDuration = 0.85f;
-                ctx->feedback.color = (Color){255, 65, 65, 255};
-                snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "NEED 3 ORBS!");
-                LogSpellInvoke(&ctx->actionLog, SPELL_NONE, &ctx->orbBuffer, false);
-                TriggerGameOver(ctx, true);
-                return;
-            } else {
-                ctx->feedback.timer = 0.85f;
-                ctx->feedback.maxDuration = 0.85f;
-                ctx->feedback.color = (Color){255, 180, 50, 255};
-                snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "NEED 3 ORBS");
-                LogSpellInvoke(&ctx->actionLog, SPELL_NONE, &ctx->orbBuffer, false);
-                PlayQuizFeedbackSound(ctx->audio, false);
-            }
+            // In Endless, incomplete orbs counts as Miss -> Sudden Death!
+            ctx->totalAttempted++;
+            ctx->feedback.timer = 0.85f;
+            ctx->feedback.maxDuration = 0.85f;
+            ctx->feedback.color = (Color){255, 65, 65, 255};
+            snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "NEED 3 ORBS!");
+            LogSpellInvoke(&ctx->actionLog, SPELL_NONE, &ctx->orbBuffer, false);
+            TriggerGameOver(ctx, true);
+            return;
         } else {
             SpellId invokedSpell = ResolveSpell(&ctx->orbBuffer);
 
@@ -722,21 +661,14 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
                 EmitInvokeBurst(&ctx->particles, invokeCenter, sColor, 24);
                 EmitSpellSuccessBurst(&ctx->particles, cardCenter, sColor);
 
-                if (ctx->gameMode == GAME_MODE_ENDLESS) {
-                    // Endless Mode: grant +2.5s time bonus!
-                    ctx->roundTimer += 2.5f;
-                    if (ctx->roundTimer > 25.0f) ctx->roundTimer = 25.0f; // cap max breathing room at 25s
+                // Endless Mode: grant +2.5s time bonus!
+                ctx->roundTimer += 2.5f;
+                if (ctx->roundTimer > 25.0f) ctx->roundTimer = 25.0f; // cap max breathing room at 25s
 
-                    ctx->feedback.timer = 0.85f;
-                    ctx->feedback.maxDuration = 0.85f;
-                    ctx->feedback.color = (Color){50, 240, 100, 255};
-                    snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "+%d (+2.5s)", points);
-                } else {
-                    ctx->feedback.timer = 0.85f;
-                    ctx->feedback.maxDuration = 0.85f;
-                    ctx->feedback.color = (Color){50, 240, 100, 255};
-                    snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "+%d", points);
-                }
+                ctx->feedback.timer = 0.85f;
+                ctx->feedback.maxDuration = 0.85f;
+                ctx->feedback.color = (Color){50, 240, 100, 255};
+                snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "+%d (+2.5s)", points);
 
                 PlayQuizFeedbackSound(ctx->audio, true);
 
@@ -759,31 +691,18 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
                 ctx->totalAttempted++;
                 EmitInvokeBurst(&ctx->particles, invokeCenter, (Color){255, 65, 65, 255}, 16);
 
-                if (ctx->gameMode == GAME_MODE_ENDLESS) {
-                    // Sudden Death: any miss ends the game immediately!
-                    ctx->streak = 0;
-                    ctx->feedback.timer = 0.85f;
-                    ctx->feedback.maxDuration = 0.85f;
-                    ctx->feedback.color = (Color){255, 65, 65, 255};
-                    snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "MISS!");
+                // Sudden Death: any miss ends the game immediately!
+                ctx->streak = 0;
+                ctx->feedback.timer = 0.85f;
+                ctx->feedback.maxDuration = 0.85f;
+                ctx->feedback.color = (Color){255, 65, 65, 255};
+                snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "MISS!");
 
-                    bool changed = InvokeSpell(&ctx->spellSlots, &ctx->orbBuffer);
-                    LogSpellInvoke(&ctx->actionLog, invokedSpell, &ctx->orbBuffer, changed);
+                bool changed = InvokeSpell(&ctx->spellSlots, &ctx->orbBuffer);
+                LogSpellInvoke(&ctx->actionLog, invokedSpell, &ctx->orbBuffer, changed);
 
-                    TriggerGameOver(ctx, true);
-                    return;
-                } else {
-                    if (ctx->streak >= 5) {
-                        PlayVoiceEvent(ctx->audio, VOICE_MISS);
-                    }
-                    ctx->streak = 0;
-                    ctx->feedback.timer = 0.85f;
-                    ctx->feedback.maxDuration = 0.85f;
-                    ctx->feedback.color = (Color){255, 65, 65, 255};
-                    snprintf(ctx->feedback.text, sizeof(ctx->feedback.text), "MISS!");
-
-                    PlayQuizFeedbackSound(ctx->audio, false);
-                }
+                TriggerGameOver(ctx, true);
+                return;
             }
 
             bool changed = InvokeSpell(&ctx->spellSlots, &ctx->orbBuffer);

@@ -31,7 +31,7 @@ void InitGameContext(GameContext *ctx, const GameAssets *assets, AudioManager *a
     ctx->transition.to = SCREEN_LOGO;
     ctx->transition.speed = 3.0f; // Quick responsive 330ms fade
 
-    ResetGameplaySession(ctx, GAME_MODE_PRACTICE);
+    ResetGameplaySession(ctx, GAME_MODE_ENDLESS);
 }
 
 void StartTransition(ScreenTransition *trans, GameScreen to) {

@@ -69,26 +69,16 @@ void SaveHighScores(const HighScoreData *scores) {
 
 bool UpdateHighScores(HighScoreData *scores, GameplayMode mode, int score, int streak, int spells, DotaRank rank) {
     if (!scores) return false;
+    (void)mode;
     bool isNewRecord = false;
 
-    if (mode == GAME_MODE_ENDLESS) {
-        if (score > scores->endlessBestScore) {
-            scores->endlessBestScore = score;
-            scores->endlessBestStreak = streak;
-            scores->endlessBestSpells = spells;
-            scores->endlessBestRank = rank;
-            isNewRecord = true;
-            SaveHighScores(scores);
-        }
-    } else if (mode == GAME_MODE_TIME_ATTACK) {
-        if (score > scores->timeAttackBestScore) {
-            scores->timeAttackBestScore = score;
-            scores->timeAttackBestStreak = streak;
-            scores->timeAttackBestSpells = spells;
-            scores->timeAttackBestRank = rank;
-            isNewRecord = true;
-            SaveHighScores(scores);
-        }
+    if (score > scores->endlessBestScore) {
+        scores->endlessBestScore = score;
+        scores->endlessBestStreak = streak;
+        scores->endlessBestSpells = spells;
+        scores->endlessBestRank = rank;
+        isNewRecord = true;
+        SaveHighScores(scores);
     }
 
     return isNewRecord;
@@ -113,24 +103,15 @@ RankInfo GetDotaRankInfo(DotaRank rank) {
 }
 
 DotaRank CalculateDotaRank(GameplayMode mode, int correctSpells) {
-    if (mode == GAME_MODE_ENDLESS) {
-        if (correctSpells >= 50) return DOTA_RANK_IMMORTAL;
-        if (correctSpells >= 40) return DOTA_RANK_DIVINE;
-        if (correctSpells >= 30) return DOTA_RANK_ANCIENT;
-        if (correctSpells >= 22) return DOTA_RANK_LEGEND;
-        if (correctSpells >= 15) return DOTA_RANK_ARCHON;
-        if (correctSpells >= 10) return DOTA_RANK_CRUSADER;
-        if (correctSpells >= 5)  return DOTA_RANK_GUARDIAN;
-        return DOTA_RANK_HERALD;
-    } else {
-        // Time Attack (60s default)
-        if (correctSpells >= 60) return DOTA_RANK_IMMORTAL;
-        if (correctSpells >= 50) return DOTA_RANK_DIVINE;
-        if (correctSpells >= 40) return DOTA_RANK_ANCIENT;
-        if (correctSpells >= 31) return DOTA_RANK_LEGEND;
-        if (correctSpells >= 23) return DOTA_RANK_ARCHON;
-        if (correctSpells >= 15) return DOTA_RANK_CRUSADER;
-        if (correctSpells >= 8)  return DOTA_RANK_GUARDIAN;
-        return DOTA_RANK_HERALD;
-    }
+    (void)mode;
+
+    if (correctSpells >= 50) return DOTA_RANK_IMMORTAL;
+    if (correctSpells >= 40) return DOTA_RANK_DIVINE;
+    if (correctSpells >= 30) return DOTA_RANK_ANCIENT;
+    if (correctSpells >= 22) return DOTA_RANK_LEGEND;
+    if (correctSpells >= 15) return DOTA_RANK_ARCHON;
+    if (correctSpells >= 10) return DOTA_RANK_CRUSADER;
+    if (correctSpells >= 5)  return DOTA_RANK_GUARDIAN;
+    return DOTA_RANK_HERALD;
+
 }
