@@ -172,46 +172,31 @@ static void DrawHighScoresView(const GameContext *ctx) {
     DrawText("HALL OF INVOCATION", centerX - MeasureText("HALL OF INVOCATION", 26) / 2, 495, 26, GOLD);
     DrawText("Personal Best Records & Dota 2 Rank Medals", centerX - MeasureText("Personal Best Records & Dota 2 Rank Medals", 14) / 2, 530, 14, (Color){150, 155, 170, 255});
 
-    // Endless Mode Card
-    int y1 = 560;
-    int h1 = 145;
+    // Endless Mode Showcase Card
+    int y1 = 565;
+    int h1 = 175;
     DrawRectangle(cardX, y1, cardW, h1, (Color){22, 26, 36, 255});
     RankInfo endRank = GetDotaRankInfo(ctx->highScores.endlessBestRank);
     DrawRectangleLinesEx((Rectangle){(float)cardX, (float)y1, (float)cardW, (float)h1}, 1.5f, endRank.color);
 
-    DrawText("ENDLESS SURVIVAL", cardX + 20, y1 + 16, 18, (Color){255, 100, 100, 255});
-    DrawText(TextFormat("RANK: %s (%s)", endRank.name, endRank.title), cardX + 20, y1 + 42, 17, endRank.color);
-    DrawText(TextFormat("High Score: %d", ctx->highScores.endlessBestScore), cardX + 20, y1 + 72, 16, GOLD);
-    DrawText(TextFormat("Max Strike / Streak: %d", ctx->highScores.endlessBestStreak), cardX + 20, y1 + 95, 15, (Color){100, 240, 140, 255});
-    DrawText(TextFormat("Spells Invoked: %d", ctx->highScores.endlessBestSpells), cardX + 20, y1 + 117, 15, RAYWHITE);
+    // DrawText("ENDLESS SURVIVAL", cardX + 20, y1 + 16, 18, (Color){255, 100, 100, 255});
+    // DrawText(TextFormat("RANK: %s (%s)", endRank.name, endRank.title), cardX + 20, y1 + 42, 17, endRank.color);
+    // DrawText(TextFormat("High Score: %d", ctx->highScores.endlessBestScore), cardX + 20, y1 + 72, 16, GOLD);
+    // DrawText(TextFormat("Max Strike / Streak: %d", ctx->highScores.endlessBestStreak), cardX + 20, y1 + 95, 15, (Color){100, 240, 140, 255});
+    // DrawText(TextFormat("Spells Invoked: %d", ctx->highScores.endlessBestSpells), cardX + 20, y1 + 117, 15, RAYWHITE);
+
+    DrawText("ENDLESS SURVIVAL", cardX + 24, y1 + 18, 20, (Color){255, 100, 100, 255});
+    DrawText(TextFormat("RANK: %s (%s)", endRank.name, endRank.title), cardX + 24, y1 + 46, 18, endRank.color);
+    DrawText(TextFormat("High Score: %d", ctx->highScores.endlessBestScore), cardX + 24, y1 + 78, 16, GOLD);
+    DrawText(TextFormat("Max Strike / Streak: %d", ctx->highScores.endlessBestStreak), cardX + 24, y1 + 104, 15, (Color){100, 240, 140, 255});
+    DrawText(TextFormat("Spells Invoked: %d", ctx->highScores.endlessBestSpells), cardX + 24, y1 + 128, 15, RAYWHITE);
 
     // Rank Badge Icon on the right
     Texture2D endTex = GetRankTexture(ctx->assets, ctx->highScores.endlessBestRank);
     if (endTex.id > 0) {
         Rectangle src = {0.0f, 0.0f, (float)endTex.width, (float)endTex.height};
-        Rectangle dst = {(float)(cardX + cardW - 128), (float)(y1 + 16), 112.0f, 112.0f};
+        Rectangle dst = {(float)(cardX + cardW - 148), (float)(y1 + 18), 136.0f, 136.0f};
         DrawTexturePro(endTex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
-    }
-
-    // Time Attack Card
-    int y2 = 720;
-    int h2 = 145;
-    DrawRectangle(cardX, y2, cardW, h2, (Color){22, 26, 36, 255});
-    RankInfo taRank = GetDotaRankInfo(ctx->highScores.timeAttackBestRank);
-    DrawRectangleLinesEx((Rectangle){(float)cardX, (float)y2, (float)cardW, (float)h2}, 1.5f, taRank.color);
-
-    DrawText("TIME ATTACK (60s)", cardX + 20, y2 + 16, 18, (Color){255, 200, 80, 255});
-    DrawText(TextFormat("RANK: %s (%s)", taRank.name, taRank.title), cardX + 20, y2 + 42, 17, taRank.color);
-    DrawText(TextFormat("High Score: %d", ctx->highScores.timeAttackBestScore), cardX + 20, y2 + 72, 16, GOLD);
-    DrawText(TextFormat("Max Strike / Streak: %d", ctx->highScores.timeAttackBestStreak), cardX + 20, y2 + 95, 15, (Color){100, 240, 140, 255});
-    DrawText(TextFormat("Spells Invoked: %d", ctx->highScores.timeAttackBestSpells), cardX + 20, y2 + 117, 15, RAYWHITE);
-
-    // Rank Badge Icon on the right
-    Texture2D taTex = GetRankTexture(ctx->assets, ctx->highScores.timeAttackBestRank);
-    if (taTex.id > 0) {
-        Rectangle src = {0.0f, 0.0f, (float)taTex.width, (float)taTex.height};
-        Rectangle dst = {(float)(cardX + cardW - 128), (float)(y2 + 16), 112.0f, 112.0f};
-        DrawTexturePro(taTex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
     }
 
     // Rank Ladder Guide
