@@ -1,12 +1,30 @@
 # Compiler & Flags for Desktop (Linux x86_64)
 CC ?= gcc
-CFLAGS = -Wall -Wextra -std=c99 -Iinclude -I/usr/local/include -MMD -MP
+
+RAYLIB_PATH ?= /usr/local/include
+
+CFLAGS = -Wall -Wextra -std=c99 -Iinclude -I$(RAYLIB_PATH) -MMD -MP
+DEBUG_CFLAGS = -Wall -Wextra -std=c99 -g -O0 -fsanitize=address,undefined -fno-omit-frame-pointer -Iinclude -I$(RAYLIB_PATH) -MMD -MP
+
 LDFLAGS = -L/usr/local/lib -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
+DEBUG_LDFLAGS = $(LDFLAGS) -fsanitize=address,undefined
+
+# Directories
+BUILD_DIR = build
+DESKTOP_DIR = $(BUILD_DIR)/desktop
+DESKTOP_OBJ_DIR = $(DESKTOP_DIR)/obj
+DESKTOP_DEBUG_OBJ_DIR = $(DESKTOP_DIR)/obj_debug
 
 SRC = $(wildcard src/*.c)
-OBJ = $(SRC:.c=.o)
+#OBJ = $(SRC:.c=.o)
+OBJ = $(patsubst src/%.c, $(DESKTOP_OBJ_DIR)/%.o, $(SRC))
 DEP = $(OBJ:.o=.d)
-TARGET = invoker_game
+
+DEBUG_OBJ = $(patsubst src/%.c, $(DESKTOP_DEBUG_OBJ_DIR)/%.o, $(SRC))
+DEBUG_DEP = $(DEBUG_OBJ:.o=.d)
+
+TARGET = $(DESKTOP_DIR)/invoker_game
+DEBUG_TARGET = $(DESKTOP_DIR)/invoker_game_debug
 
 # Emscripten toolchain for WebAssembly (HTML5)
 EMSDK_PATH ?= /home/rcd/Applications/emsdk-6.0.10
@@ -25,19 +43,38 @@ EMCC_FLAGS = -Os -Wall -Wextra -std=c99 -Iinclude -I$(RAYLIB_WEB_PATH)/src \
              -s TOTAL_MEMORY=67108864 \
              -s FORCE_FILESYSTEM=1
 
+# Desktop Release Target
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
-	$(CC) $(OBJ) -o $(TARGET) $(LDFLAGS)
+	@mkdir -p $(DESKTOP_DIR)
+	$(CC) $(OBJ) -o $@ $(LDFLAGS)
 
-%.o: %.c
+$(DESKTOP_OBJ_DIR)/%.o: src/%.c
+	@mkdir -p $(DESKTOP_OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Desktop Debug Target (with ASan & UBSan)
+debug: $(DEBUG_TARGET)
+
+$(DEBUG_TARGET): $(DEBUG_OBJ)
+	@mkdir -p $(DESKTOP_DIR)
+	$(CC) $(DEBUG_OBJ) -o $@ $(DEBUG_LDFLAGS)
+
+$(DESKTOP_DEBUG_OBJ_DIR)/%.o: src/%.c
+	@mkdir -p $(DESKTOP_DEBUG_OBJ_DIR)
+	$(CC) $(DEBUG_CFLAGS) -c $< -o $@
+
 -include $(DEP)
+-include $(DEBUG_DEP)
 
 run: $(TARGET)
 	./$(TARGET)
 
+run-debug: $(DEBUG_TARGET)
+	./$(DEBUG_TARGET)
+
+# Web Target
 web: $(WEB_TARGET)
 
 $(WEB_TARGET): $(SRC) $(WEB_SHELL)
@@ -49,11 +86,17 @@ run-web: web
 	@echo "Starting local web server at http://localhost:8080..."
 	python3 -m http.server 8080 --directory $(WEB_OUT_DIR)
 
-clean:
-	rm -f src/*.o src/*.d $(TARGET)
-	rm -rf $(WEB_OUT_DIR)
+# Clean Targets
+clean: clean-desktop
+
+clean-desktop:
+	# rm -f src/*.o src/*.d $(TARGET)
+	rm -rf $(DESKTOP_DIR)
 
 clean-web:
 	rm -rf $(WEB_OUT_DIR)
 
-.PHONY: all run clean web run-web clean-web
+clean-all:
+	rm -rf $(BUILD_DIR)
+
+.PHONY: all run debug run-debug web run-web clean clean-desktop clean-web clean-all
