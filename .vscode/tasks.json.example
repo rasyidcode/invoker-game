@@ -15,7 +15,20 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "detail": "Build the game"
+            "detail": "Build release game"
+        },
+        {
+            "label": "make debug",
+            "type": "shell",
+            "command": "make",
+            "args": ["debug"],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Build debug game with ASan & GDB symbols"
         },
         {
             "label": "make clean",
