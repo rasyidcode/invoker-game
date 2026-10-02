@@ -152,6 +152,6 @@ void DrawSpellbookScreen(const GameContext *ctx, Vector2 mouse);
 
 // Screen Modules: Gameplay (Practice, Time Attack & Endless)
 void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse);
-void DrawGameplayScreen(GameContext *ctx, Vector2 mouse);
+void DrawGameplayScreen(GameContext *ctx);
 
 #endif // SCREEN_H

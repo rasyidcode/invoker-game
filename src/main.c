@@ -62,7 +62,7 @@ static void UpdateDrawFrame(void) {
                 DrawMenuScreen(&gApp.ctx, mouse);
                 break;
             case SCREEN_GAMEPLAY:
-                DrawGameplayScreen(&gApp.ctx, mouse);
+                DrawGameplayScreen(&gApp.ctx);
                 break;
             case SCREEN_SPELLBOOK:
                 DrawSpellbookScreen(&gApp.ctx, mouse);

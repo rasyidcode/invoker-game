@@ -735,7 +735,7 @@ void UpdateGameplayScreen(GameContext *ctx, float dt, Vector2 mouse) {
     }
 }
 
-void DrawGameplayScreen(GameContext *ctx, Vector2 mouse) {
+void DrawGameplayScreen(GameContext *ctx) {
     ClearBackground((Color){18, 20, 24, 255});
 
     int centerX = VIRTUAL_WIDTH / 2;

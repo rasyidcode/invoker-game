@@ -350,63 +350,6 @@ static void DrawControlsView(void) {
     DrawText(backTxt, centerX - backW / 2, btnY + 18, 18, GOLD);
 }
 
-static void DrawExitConfirmModal(const GameContext *ctx) {
-    int centerX = VIRTUAL_WIDTH / 2;
-
-    // 1. Dim background overlay
-    DrawRectangle(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT, (Color){10, 12, 16, 225});
-
-    // // 2. Centered dialog box
-    // int modalW = 500;
-    // int modalH = 280;
-    // int modalX = centerX - modalW / 2;
-    // int modalY = (VIRTUAL_HEIGHT - modalH) / 2;
-
-    // DrawRectangle(modalX, modalY, modalW, modalH, (Color){20, 24, 34, 255});
-    // DrawRectangleLinesEx((Rectangle){(float)modalX, (float)modalY, (float)modalW, (float)modalH}, 2.5f, (Color){240, 80, 80, 255});
-    // DrawRectangleLinesEx((Rectangle){(float)modalX + 4, (float)modalY + 4, (float)modalW - 8, (float)modalH - 8}, 1.0f, ColorAlpha(GOLD, 0.45f));
-
-    // // Title
-    // const char *title = "QUIT GAME?";
-    // int tFs = 30;
-    // int tW = MeasureText(title, tFs);
-    // DrawText(title, centerX - tW / 2, modalY + 32, tFs, (Color){255, 80, 80, 255});
-
-    // // Description
-    // const char *desc = "Are you sure you want to return to desktop?";
-    // int dFs = 15;
-    // int dW = MeasureText(desc, dFs);
-    // DrawText(desc, centerX - dW / 2, modalY + 76, dFs, (Color){190, 195, 210, 255});
-
-    // // Buttons: CANCEL (0) and QUIT (1)
-    // int btnW = 200;
-    // int btnH = 58;
-    // int btnY = modalY + 140;
-    // int btn1X = centerX - btnW - 12; // CANCEL
-    // int btn2X = centerX + 12;        // QUIT
-
-    // bool selCancel = (ctx->exitModal.selectedButton == 0);
-    // bool selQuit = (ctx->exitModal.selectedButton == 1);
-
-    // // CANCEL button
-    // DrawRectangle(btn1X, btnY, btnW, btnH, selCancel ? (Color){38, 48, 70, 255} : (Color){25, 30, 42, 255});
-    // DrawRectangleLinesEx((Rectangle){(float)btn1X, (float)btnY, (float)btnW, (float)btnH},
-    //                      selCancel ? 2.5f : 1.0f, selCancel ? GOLD : (Color){60, 65, 85, 255});
-    // DrawText("CANCEL", btn1X + (btnW - MeasureText("CANCEL", 18)) / 2, btnY + 12, 18, selCancel ? (Color){255, 245, 220, 255} : RAYWHITE);
-    // DrawText("[ ESC ]", btn1X + (btnW - MeasureText("[ ESC ]", 11)) / 2, btnY + 36, 11, selCancel ? GOLD : (Color){130, 135, 150, 255});
-
-    // // QUIT button
-    // DrawRectangle(btn2X, btnY, btnW, btnH, selQuit ? (Color){60, 25, 25, 255} : (Color){32, 20, 22, 255});
-    // DrawRectangleLinesEx((Rectangle){(float)btn2X, (float)btnY, (float)btnW, (float)btnH},
-    //                      selQuit ? 2.5f : 1.0f, selQuit ? (Color){255, 80, 80, 255} : (Color){85, 50, 50, 255});
-    // DrawText("QUIT GAME", btn2X + (btnW - MeasureText("QUIT GAME", 18)) / 2, btnY + 12, 18, selQuit ? (Color){255, 210, 210, 255} : (Color){200, 160, 160, 255});
-    // DrawText("[ ENTER ]", btn2X + (btnW - MeasureText("[ ENTER ]", 11)) / 2, btnY + 36, 11, selQuit ? (Color){255, 120, 120, 255} : (Color){140, 100, 100, 255});
-
-    //  // Footer hint
-    // const char *hint = "Select with [ARROWS] or [MOUSE] and press [ENTER]";
-    // DrawText(hint, centerX - MeasureText(hint, 12) / 2, modalY + modalH - 34, 12, (Color){110, 115, 130, 255});
-}
-
 void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
     if (ctx->exitHintTimer > 0.0f) {
         ctx->exitHintTimer -= dt;
@@ -502,11 +445,6 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
                     ctx->menuPage = MENU_PAGE_HELP;
                     ctx->menuSelected = 0;
                     break;
-                case 4: // QUIT GAME
-                    ctx->exitHintTimer = 0.0f;
-                    ctx->exitModal.active = true;
-                    ctx->exitModal.selectedButton = 0;
-                    break;
                 default: break;
             }
         }
@@ -516,6 +454,7 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
                 // Second ESC within 2.0f: exit immediately
                 PlayInvokeSound(ctx->audio);
                 ctx->shouldExit = true;
+                return;
             } else {
                 // First ESC: start 2.0s countdown
                 ctx->exitHintTimer = 2.0f;
