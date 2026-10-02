@@ -4,7 +4,7 @@
 void InitGameContext(GameContext *ctx, const GameAssets *assets, AudioManager *audio) {
     if (!ctx) return;
 
-    ctx->currentScreen = SCREEN_LOGO;
+    ctx->currentScreen = SCREEN_MENU;
     ctx->shouldExit = false;
 
     ctx->assets = assets;

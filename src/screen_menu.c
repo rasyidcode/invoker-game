@@ -2,7 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#define MAIN_ITEM_COUNT 5
+#define MAIN_ITEM_COUNT 4
 #define HELP_ITEM_COUNT 3
 
 #define MENU_BTN_WIDTH 540
@@ -19,7 +19,6 @@ static const MenuItem mainMenuItems[MAIN_ITEM_COUNT] = {
     {"HIGH SCORE", "Personal records, best streaks & rank badges", "2"},
     {"SETTINGS", "Audio volume sliders, SFX, voice & options", "3"},
     {"HELP", "Spell Book, recipes & controls guide", "4"},
-    {"QUIT GAME", "Exit to desktop", "5"}
 };
 
 static const MenuItem helpMenuItems[HELP_ITEM_COUNT] = {
@@ -351,62 +350,61 @@ static void DrawControlsView(void) {
     DrawText(backTxt, centerX - backW / 2, btnY + 18, 18, GOLD);
 }
 
-static void DrawExitConfirmModal(const GameContext *ctx, Vector2 mouse) {
-    (void)mouse;
+static void DrawExitConfirmModal(const GameContext *ctx) {
     int centerX = VIRTUAL_WIDTH / 2;
 
     // 1. Dim background overlay
     DrawRectangle(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT, (Color){10, 12, 16, 225});
 
-    // 2. Centered dialog box
-    int modalW = 500;
-    int modalH = 280;
-    int modalX = centerX - modalW / 2;
-    int modalY = (VIRTUAL_HEIGHT - modalH) / 2;
+    // // 2. Centered dialog box
+    // int modalW = 500;
+    // int modalH = 280;
+    // int modalX = centerX - modalW / 2;
+    // int modalY = (VIRTUAL_HEIGHT - modalH) / 2;
 
-    DrawRectangle(modalX, modalY, modalW, modalH, (Color){20, 24, 34, 255});
-    DrawRectangleLinesEx((Rectangle){(float)modalX, (float)modalY, (float)modalW, (float)modalH}, 2.5f, (Color){240, 80, 80, 255});
-    DrawRectangleLinesEx((Rectangle){(float)modalX + 4, (float)modalY + 4, (float)modalW - 8, (float)modalH - 8}, 1.0f, ColorAlpha(GOLD, 0.45f));
+    // DrawRectangle(modalX, modalY, modalW, modalH, (Color){20, 24, 34, 255});
+    // DrawRectangleLinesEx((Rectangle){(float)modalX, (float)modalY, (float)modalW, (float)modalH}, 2.5f, (Color){240, 80, 80, 255});
+    // DrawRectangleLinesEx((Rectangle){(float)modalX + 4, (float)modalY + 4, (float)modalW - 8, (float)modalH - 8}, 1.0f, ColorAlpha(GOLD, 0.45f));
 
-    // Title
-    const char *title = "QUIT GAME?";
-    int tFs = 30;
-    int tW = MeasureText(title, tFs);
-    DrawText(title, centerX - tW / 2, modalY + 32, tFs, (Color){255, 80, 80, 255});
+    // // Title
+    // const char *title = "QUIT GAME?";
+    // int tFs = 30;
+    // int tW = MeasureText(title, tFs);
+    // DrawText(title, centerX - tW / 2, modalY + 32, tFs, (Color){255, 80, 80, 255});
 
-    // Description
-    const char *desc = "Are you sure you want to return to desktop?";
-    int dFs = 15;
-    int dW = MeasureText(desc, dFs);
-    DrawText(desc, centerX - dW / 2, modalY + 76, dFs, (Color){190, 195, 210, 255});
+    // // Description
+    // const char *desc = "Are you sure you want to return to desktop?";
+    // int dFs = 15;
+    // int dW = MeasureText(desc, dFs);
+    // DrawText(desc, centerX - dW / 2, modalY + 76, dFs, (Color){190, 195, 210, 255});
 
-    // Buttons: CANCEL (0) and QUIT (1)
-    int btnW = 200;
-    int btnH = 58;
-    int btnY = modalY + 140;
-    int btn1X = centerX - btnW - 12; // CANCEL
-    int btn2X = centerX + 12;        // QUIT
+    // // Buttons: CANCEL (0) and QUIT (1)
+    // int btnW = 200;
+    // int btnH = 58;
+    // int btnY = modalY + 140;
+    // int btn1X = centerX - btnW - 12; // CANCEL
+    // int btn2X = centerX + 12;        // QUIT
 
-    bool selCancel = (ctx->exitModal.selectedButton == 0);
-    bool selQuit = (ctx->exitModal.selectedButton == 1);
+    // bool selCancel = (ctx->exitModal.selectedButton == 0);
+    // bool selQuit = (ctx->exitModal.selectedButton == 1);
 
-    // CANCEL button
-    DrawRectangle(btn1X, btnY, btnW, btnH, selCancel ? (Color){38, 48, 70, 255} : (Color){25, 30, 42, 255});
-    DrawRectangleLinesEx((Rectangle){(float)btn1X, (float)btnY, (float)btnW, (float)btnH},
-                         selCancel ? 2.5f : 1.0f, selCancel ? GOLD : (Color){60, 65, 85, 255});
-    DrawText("CANCEL", btn1X + (btnW - MeasureText("CANCEL", 18)) / 2, btnY + 12, 18, selCancel ? (Color){255, 245, 220, 255} : RAYWHITE);
-    DrawText("[ ESC ]", btn1X + (btnW - MeasureText("[ ESC ]", 11)) / 2, btnY + 36, 11, selCancel ? GOLD : (Color){130, 135, 150, 255});
+    // // CANCEL button
+    // DrawRectangle(btn1X, btnY, btnW, btnH, selCancel ? (Color){38, 48, 70, 255} : (Color){25, 30, 42, 255});
+    // DrawRectangleLinesEx((Rectangle){(float)btn1X, (float)btnY, (float)btnW, (float)btnH},
+    //                      selCancel ? 2.5f : 1.0f, selCancel ? GOLD : (Color){60, 65, 85, 255});
+    // DrawText("CANCEL", btn1X + (btnW - MeasureText("CANCEL", 18)) / 2, btnY + 12, 18, selCancel ? (Color){255, 245, 220, 255} : RAYWHITE);
+    // DrawText("[ ESC ]", btn1X + (btnW - MeasureText("[ ESC ]", 11)) / 2, btnY + 36, 11, selCancel ? GOLD : (Color){130, 135, 150, 255});
 
-    // QUIT button
-    DrawRectangle(btn2X, btnY, btnW, btnH, selQuit ? (Color){60, 25, 25, 255} : (Color){32, 20, 22, 255});
-    DrawRectangleLinesEx((Rectangle){(float)btn2X, (float)btnY, (float)btnW, (float)btnH},
-                         selQuit ? 2.5f : 1.0f, selQuit ? (Color){255, 80, 80, 255} : (Color){85, 50, 50, 255});
-    DrawText("QUIT GAME", btn2X + (btnW - MeasureText("QUIT GAME", 18)) / 2, btnY + 12, 18, selQuit ? (Color){255, 210, 210, 255} : (Color){200, 160, 160, 255});
-    DrawText("[ ENTER ]", btn2X + (btnW - MeasureText("[ ENTER ]", 11)) / 2, btnY + 36, 11, selQuit ? (Color){255, 120, 120, 255} : (Color){140, 100, 100, 255});
+    // // QUIT button
+    // DrawRectangle(btn2X, btnY, btnW, btnH, selQuit ? (Color){60, 25, 25, 255} : (Color){32, 20, 22, 255});
+    // DrawRectangleLinesEx((Rectangle){(float)btn2X, (float)btnY, (float)btnW, (float)btnH},
+    //                      selQuit ? 2.5f : 1.0f, selQuit ? (Color){255, 80, 80, 255} : (Color){85, 50, 50, 255});
+    // DrawText("QUIT GAME", btn2X + (btnW - MeasureText("QUIT GAME", 18)) / 2, btnY + 12, 18, selQuit ? (Color){255, 210, 210, 255} : (Color){200, 160, 160, 255});
+    // DrawText("[ ENTER ]", btn2X + (btnW - MeasureText("[ ENTER ]", 11)) / 2, btnY + 36, 11, selQuit ? (Color){255, 120, 120, 255} : (Color){140, 100, 100, 255});
 
-     // Footer hint
-    const char *hint = "Select with [ARROWS] or [MOUSE] and press [ENTER]";
-    DrawText(hint, centerX - MeasureText(hint, 12) / 2, modalY + modalH - 34, 12, (Color){110, 115, 130, 255});
+    //  // Footer hint
+    // const char *hint = "Select with [ARROWS] or [MOUSE] and press [ENTER]";
+    // DrawText(hint, centerX - MeasureText(hint, 12) / 2, modalY + modalH - 34, 12, (Color){110, 115, 130, 255});
 }
 
 void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
@@ -420,49 +418,6 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
 
     Vector2 mouseDelta = GetMouseDelta();
     bool mouseMoved = (fabsf(mouseDelta.x) > 0.8f || fabsf(mouseDelta.y) > 0.8f);
-
-    if (ctx->exitModal.active) {
-        int modalH = 280;
-        int modalY = (VIRTUAL_HEIGHT - modalH) / 2;
-        int btnW = 200;
-        int btnH = 58;
-        int btnY = modalY + 140;
-        Rectangle rCancel = {(float)(centerX - btnW - 12), (float)btnY, (float)btnW, (float)btnH};
-        Rectangle rQuit   = {(float)(centerX + 12), (float)btnY, (float)btnW, (float)btnH};
-
-        // Mouse hover
-        if (mouseMoved) {
-            if (CheckCollisionPointRec(mouse, rCancel)) ctx->exitModal.selectedButton = 0;
-            if (CheckCollisionPointRec(mouse, rQuit))   ctx->exitModal.selectedButton = 1;
-        }
-
-        // Arrow navigation
-        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A) || IsKeyPressed(KEY_UP)) {
-            ctx->exitModal.selectedButton = 0;
-        }
-        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D) || IsKeyPressed(KEY_DOWN)) {
-            ctx->exitModal.selectedButton = 1;
-        }
-        // Mouse click or Enter / Space confirmation
-        bool clickCancel = (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, rCancel));
-        bool clickQuit   = (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, rQuit));
-        if (clickCancel || (IsKeyPressed(KEY_ENTER) && ctx->exitModal.selectedButton == 0) || (IsKeyPressed(KEY_SPACE) && ctx->exitModal.selectedButton == 0)) {
-            ctx->exitModal.active = false;
-            PlayOrbSound(ctx->audio, ORB_QUAS);
-            return;
-        }
-        if (clickQuit || (IsKeyPressed(KEY_ENTER) && ctx->exitModal.selectedButton == 1) || (IsKeyPressed(KEY_SPACE) && ctx->exitModal.selectedButton == 1)) {
-            PlayInvokeSound(ctx->audio);
-            ctx->shouldExit = true;
-            return;
-        }
-        // ESC cancels the modal (silent)
-        if (IsKeyPressed(KEY_ESCAPE)) {
-            ctx->exitModal.active = false;
-            return;
-        }
-        return; // Block underlying menu inputs while modal is active
-    }
 
     // Easter egg: click top orbs to hear element sound
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -513,7 +468,6 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
         if (IsKeyPressed(KEY_TWO))   { ctx->menuSelected = 1; ctx->exitHintTimer = 0.0f; };
         if (IsKeyPressed(KEY_THREE)) { ctx->menuSelected = 2; ctx->exitHintTimer = 0.0f; };
         if (IsKeyPressed(KEY_FOUR))  { ctx->menuSelected = 3; ctx->exitHintTimer = 0.0f; };
-        if (IsKeyPressed(KEY_FIVE))  { ctx->menuSelected = 4; ctx->exitHintTimer = 0.0f; };
 
         bool activate = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE);
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -531,7 +485,7 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
         if (activate) {
             PlayInvokeSound(ctx->audio);
             switch (ctx->menuSelected) {
-                case 0: // PLAY -> Endless Mode directly!
+                case 0: // PLAY
                     ctx->exitHintTimer = 0.0f;
                     ResetGameplaySession(ctx);
                     StartTransition(&ctx->transition, SCREEN_GAMEPLAY);
@@ -559,10 +513,9 @@ void UpdateMenuScreen(GameContext *ctx, float dt, Vector2 mouse) {
 
         if (IsKeyPressed(KEY_ESCAPE)) {
             if (ctx->exitHintTimer > 0.0f) {
-                // Second ESC within timer window: trigger confirmation modal!
-                ctx->exitHintTimer = 0.0f;
-                ctx->exitModal.active = true;
-                ctx->exitModal.selectedButton = 0; // Default to CANCEL
+                // Second ESC within 2.0f: exit immediately
+                PlayInvokeSound(ctx->audio);
+                ctx->shouldExit = true;
             } else {
                 // First ESC: start 2.0s countdown
                 ctx->exitHintTimer = 2.0f;
@@ -729,6 +682,20 @@ void DrawMenuScreen(GameContext *ctx, Vector2 mouse) {
     switch (ctx->menuPage) {
         case MENU_PAGE_MAIN:
             DrawMenuButtons(MAIN_ITEM_COUNT, mainMenuItems, ctx->menuSelected, MENU_BTN_START_Y, 74, 14);
+
+            if (ctx->exitHintTimer > 0.0f) {
+                const char *hintText = "Press ESC again to exit";
+                int hFs = 20;
+                int hW = MeasureText(hintText, hFs);
+                int pillW = hW + 40;
+                int pillH = 36;
+                int pillX = centerX - pillW / 2;
+                int pillY = 1010;
+                DrawRectangle(pillX, pillY, pillW, pillH, (Color){20, 24, 34, 255});
+                DrawRectangleLinesEx((Rectangle){(float)pillX, (float)pillY, (float)pillW, (float)pillH}, 1.5f, GOLD);
+                DrawText(hintText, centerX - hW / 2, pillY + (pillH - hFs) / 2, hFs, GOLD);
+            }
+
             break;
         case MENU_PAGE_HELP:
             DrawMenuButtons(HELP_ITEM_COUNT, helpMenuItems, ctx->menuSelected, MENU_BTN_START_Y, 86, 18);
@@ -746,21 +713,6 @@ void DrawMenuScreen(GameContext *ctx, Vector2 mouse) {
             break;
     }
 
-    if (ctx->menuPage == MENU_PAGE_MAIN && ctx->exitHintTimer > 0.0f && !ctx->exitModal.active) {
-        float alpha = ctx->exitHintTimer / 2.0f;
-        if (alpha > 1.0f) alpha = 1.0f;
-        const char *hintText = TextFormat("Press ESC again to exit (%.1fs)", ctx->exitHintTimer);
-        int hFs = 15;
-        int hW = MeasureText(hintText, hFs);
-        int pillW = hW + 36;
-        int pillH = 34;
-        int pillX = centerX - pillW / 2;
-        int pillY = 1010;
-        DrawRectangle(pillX, pillY, pillW, pillH, ColorAlpha((Color){20, 24, 34, 255}, alpha * 0.95f));
-        DrawRectangleLinesEx((Rectangle){(float)pillX, (float)pillY, (float)pillW, (float)pillH}, 1.5f, ColorAlpha(GOLD, alpha));
-        DrawText(hintText, centerX - hW / 2, pillY + (pillH - hFs) / 2, hFs, ColorAlpha(GOLD, alpha));
-    }
-
     // Footer
     const char *instructions = "Navigate: [UP / DOWN] or [MOUSE]    Select: [ENTER] or [CLICK]    Back: [ESC]";
     int instW = MeasureText(instructions, 14);
@@ -769,8 +721,4 @@ void DrawMenuScreen(GameContext *ctx, Vector2 mouse) {
     const char *ver = "v0.7.0 - Built with Raylib & C99";
     int verW = MeasureText(ver, 12);
     DrawText(ver, centerX - verW / 2, VIRTUAL_HEIGHT - 40, 12, (Color){75, 80, 95, 255});
-
-    if (ctx->exitModal.active) {
-        DrawExitConfirmModal(ctx, mouse);
-    }
 }

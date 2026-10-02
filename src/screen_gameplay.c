@@ -353,8 +353,7 @@ static void DrawAbilitySlots(const SpellSlots *spellSlots, const GameAssets *ass
     }
 }
 
-static void DrawGameOverModal(const GameContext *ctx, Vector2 mouse) {
-    (void)mouse;
+static void DrawGameOverModal(const GameContext *ctx) {
     int centerX = VIRTUAL_WIDTH / 2;
 
     // Dark background dim overlay
@@ -758,6 +757,6 @@ void DrawGameplayScreen(GameContext *ctx, Vector2 mouse) {
 
     // If game over modal is active, draw it on top!
     if (ctx->gameOver.active) {
-        DrawGameOverModal(ctx, mouse);
+        DrawGameOverModal(ctx);
     }
 }
